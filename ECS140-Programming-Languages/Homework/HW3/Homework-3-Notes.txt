@@ -1,0 +1,213 @@
+NFA NOTES
+
+So if we are thinking of this recursively, it will go until it reaches some terminal, but that also means that we are storing, so basically it will go through the list recursively and then transition based off the if statements and when the list is null, it will return the number its at? So now we have to figure out the structure of that because if we are consuming the list, how do we navigate through the list while also moving to another state. We setup multiple functions that get called based on the input. Will it be one input or will it just be a cdr(list) that gets passed each time, we get the value to test on using car. When car matches to something that is available, then we do a cdr, as long as the list is not nil, so then we move into another function that's been defined and it has its own set of rules.
+
+So for right now, we have fooTransitions, where we have if state eq 0, so it needs a transition T on LANGTRANSITIONS 0 1 B A B A B
+
+Start holds the value of where we are at, and final is our destination, we need to see if it equal or not. Transition in the previous told us if we could go there or not right?
+
+So transition takes in a state and then it runs into a cond, it checks that if the state is 0, there's an input of A then list 1 2?
+
+I think what it is saying is that the transition will send back a list depending on what you send in. So that means that each time the function is called on, a list will be returned, meaning if state equals to 0 and the input equals to A then return a list of 1 2
+
+
+((and (eq state 0) (eq input 'A)) (list 1 2))
+
+(expTransitions '0 'B)
+
+
+Okay so far we have it returning with two inputs. Okay so we got this working so far.
+When it comes to the transitions how are we going to determine this? 
+
+So now where do we go with this, transition takes in two values, which means we take the input. Oh my gosh are we understanding this? So basically what we have to do is use transitions to take in some value.
+
+We know that by plugging in two values for transition, that we get a list back to explore, now we need to determine where to go from here. Also we don't have a for loop to explore so how can we do this? Its a recursive function so maybe if it fails in one and its a list that contains two values, then we will check one then the next? Or what happens if its a list of list? Do we keep the list form and if it finds a list, then we do a branch on the cond? I think that will take some consideration.
+
+Example:
+
+( (1 2) 3 4 (6 7)) Here if we find another list like (1 2) or (6 7), do we create another branch statement? Our alternative would be to append it into the list either at the front or the back. Which might be why he gave us prefix.
+
+So whenever we use the expTransitions, we get a return of some type
+
+(cond ((> x 5) (- x 1))
+((eql x 5) x)
+((< x 5) (+ x 1))))
+
+I think the other question we have to ask ourselves is now that we have the transition, we have to figure out how to parse the input. Also how do we get the length of a nil?
+
+car(input) ;; returns the first value, so I think we can recursively go into reachable again
+Another question is, do we assign any variables? Do we even care about the variables? Can we just do cdr in a recursive solution?
+
+So we managed to get it so that it returns a true but for some reason it keeps going LOL
+
+This first part of reachable might not even go into different functions. It would just recursively call on transitions to get the next set of states to recurse through, so it calls reachable again.
+
+In order to go to a transition state, we use the below:
+
+(funcall transition '0 'B) ;; This works!, Returns 2
+
+
+We need to map out the keywords of how this will work. We know that the states are going to be from the transition function, so now we have to keep recursively calling reachable. When do we call reachable? When we move into a new state? Do we just send our value in as start?
+
+Okay so how do we determine if it will be reachable? We know that the termination is on nil when input, we know that we continue with the reachable being called again, transition just provides the next state. So when a new state happens, then we need to call on reachable
+
+Oh i think I get what's happening, it doesn't see transition as a function or a passable value
+
+funcall transition start (car input)
+
+So if a cond pops up then it will have to go through each part, if no return then nil
+
+;;  * 0 -a-> 1
+;;  * 0 -a-> 2
+;;  * 0 -b-> 2
+;;  * 1 -b-> 3
+;;  * 2 -c-> 3
+
+if transition returns empty, then return nil
+if input is empty and start equals final, then return true
+another condition if input is not empty then recursive function
+
+What else might we be missing? Also how do we check if transition returns empty on input, do we store it first? Also what happens if a list is returned to us from transition, how do we handle that? Maybe that's the problem we're getting with lisp.
+
+Now we have the input being nil, what we need to do is another if statement that goes into 
+It defaults into a nil? So if it defaults into nil, when does it transition? Basically if input is not nil? How do we do this? I think that if it still has inputs, then we go into recursive function
+Meaning we need to send it forward until it returns nil or T?
+
+Let's see, the default case is going to be to keep recursing, 
+So we need to say that if input eql nil, then we return nil after
+What about in the case that it cannot move forward?
+
+So if reachable is true, meaning we need to do an eql on reachable as a function
+
+For some reason, Start is always nil
+
+First we can set some x equal to transition funcall, then we have it so that we check if the value is equal to a list, if it is then we need to go in and do a car on that list and do another function, how do we get it so that it it continues onto the next one?
+
+We know how to detect that a list has been returned, how do we get it so that it goes through the list recursively? We are going to have to come up with a function that acts as a for loop, also the condition that checks if the list exists. If list exists, check the length of the list, if it is 0, then return nil? Otherwise, enter into another function that will recursively process the list and then call back onto reachable by sending start one at at time. This function will have to send transition and final in as well so that it can call it reachable. Then it will call on itself as well if the length is not 0.
+
+Input is nil, then check if we start and final are equal, what about in the case that transition is nil? So we need to see if 
+
+For some reason the x evaluates to nothing. We need something that detects if it is a list or not, if it is then 
+
+So inside reachable, I think that we do mapcar #'(lambda(x) (reachable transition
+We need to act on the value of x, such that x multiplies itself by 3 and the x is across the list,
+mapcar #'(lambda(x) (
+
+(mapcar #'(lambda(x) (* x x x)) lst)
+
+
+(mapcar #'(lambda(x) (reachable x (car input) final (cdr input)))
+
+I think our next plan of attack is to assign values to variables and see if we can just manipulate it from there. It seems to automatically default to nil. That is one problem. Without it there, it just keeps going infinitely. So now we need to now that if it is 
+
+What are the base cases that we have for this? We need to go re-evaluate it and think straight.
+
+It stops whenever the length of input is zero if start equals final then it returns either true or false, otherwise it looks through each one of them and then checks if they're true, so what we're doing is applying mapcar to each one, now we need a way of determining each value in the list is true or not
+
+We need to revert it back to where it gave us a list of all the values, that way we can manually go into them one by one. Our list is not being converted I think?
+
+Okay so this demonstrates that the it just sends nil back, it doesn't bother. Well it sends nil back because its in the same state as always. It just seems to keep sending nil, maybe because reachable isn't being called on?
+
+Occurs takes in a function
+Oh I get it, the rest of them don't go back into the loop to check again, meaning once it gets the start 3 and final 3, what is comparing them? So once we get start 3 and final 3, why does it not see it?
+
+(occurs (list T) (reachable 'fooTransitions 0 3 '(A C)))
+
+
+
+
+MATRIX NOTES
+
+areAdjacent - We need to iterate through a list and check to see if it matches the values that we have. How do we determine the position of the value though?
+
+If we have a list and we iterate through it, we need a function that returns the position of where it finds the value and then compare it. Our only problem will be trying to find two values that are the same but with different positions. 
+
+So for adjacent, we need to get something like occurs, but marks a position, how do we get it to mark a position?
+
+
+MATCH NOTES
+
+Check if either are null, then they are a match
+Check if one or the other but not both are null, return nil
+if both of them are the same, return true
+Use the first value in the pattern, use the first value in the assertion, check it against the ends of pattern and assertion
+If we find a symbol called ?, we match everywhere from pattern and assertion
+if the pattern matches a !
+if the rest of pattern matches the the rest of the assertion, then return true
+if there is no more assertion, return true
+otherwise return the rest of assertion
+If it doesn't match any of them, then its NIL
+
+
+SEXPRS
+
+There seems to be two parts to this, there is a parse and there's an eval.
+Okay now that we have all of the values from the parser, we have to go in and implement the rules
+Do we decide to just keep going with it and passing the current index or are we just going to stay with the recursive part? Which then we just look ahead and determine when to split? If we go by array value, how does that factor into our recursion? When it goes to the next rule, do we just pass the next index value, that way when its in that function, it will just do an index look ahead of +1 by saying, "Hey we were at this index and we checked that it worked, and if the split happens, it either returns true or false. Then we return that value up, so basically at any split, we just send in a new index." There doesn't seem to be a scenario where it could split that often right? Like if it needs to be an atom? If it does, then we change the code where if its true, then we do this instead, if its false, then we do that instead.
+
+I think this could work, I just wonder what the rest of the groupmates think, either way I can setup the foundation for the mini lisp. This one is worth 40 points so getting it done immediately is worth a lot. Even if we don't do it with the array in store, which I think is the best way of doing this, it can still be a setup. We can convert this string back in if we want to. Another idea is that we are just going down to check if the expression is valid right? So what we can do is just do a series of true or false for each part. Then return the string as an Sexpr.
+
+Okay so here where it gets confusing is the SExpr itself, does it want a string of all of the tokens? Tokens are not linked together, its only linked coming out of the Lexer, so plugging them straight into a string may not be the best idea. Or I mean, we can always just tokenize it again if we really care. But that doesn't necessarily change the sexpr it needs to be. We need ot determine what makes an SExpr
+
+Does the SExpr contain ALL OF them? Well that's not the part we will worry about for now, we will do the parsing first then have the string return it. Well that's what is weird, there's no way of doing it so that the token holds another token right? Token simply holds a type and a string, so if we pass in a token to an SExpr, there is no continuity
+
+Sexpr holds *token *SExpr *SExpr, got it, so this holds multiple SExpr, which means that for each part that its split into, it will determine whether the car or cdr makes it a certain way. So do we determine they are CDRs? 
+
+1. NIL, atom: NIL, car: NIL, cdr: NIL
+2. Token, atom: mkTokenSymbol("+"), car: nil, cdr: nil
+3. Cons Cell, atom: nil, car: &SExpr{atom: mkTokenSymbol("+")}
+
+We have LPar RPar
+
+Well there are two ways to do this, we have it so that it will make a new SExpr, that we pass in, Which means the return type is what we set to, meaning that we don't need to. Okay so the question now becomes, do we make it a symbol versus an atom? mkNumber is for a really large number.
+
+Okay so when we come across a quote do we make a new S-exp and if so, what do we do with it?
+
+I get the idea now. Eval is an added function in another file that is connected through expr *sExpr. It acts as an additional cpp file that implements it instead. That's interesting to me. We know that it is implemented in eval_test where after the parser checks and creates an SExpress, it will hold it and evaluate that s-exp directly after. So we are working on the one that immediately got evaluated. 
+
+After evaluation happens, I think we have to send back an SExpression that holds the final value?
+
+One is the pre-evaluated expression, the other is the post evaluation. So that means we have to create a new S Expression that evaluates what it gives us, so how do we determine that? We have to read the expression piece by piece, and then determine what to do while going through the objects. So let's get the parsing field done before anything else.
+
+Dotted list is the cons. Proper list is the spaces between the pairs. So a proper list is enclosed by an Rpar. What is the determination of the left par? So how do we determine the breakpoints? 
+
+We need to start on figuring out how each of the parses are formed and how they attach to each other. After that I think we go through each atom and determine the output.
+
+What happens if in sexpres, we don't consume the token immediately, but rather we peek to see which direction to go? That way when we're in the functions themselves, then we know where to go. If we peek then see a left we go into the function itself. With Quote I think it needs to consume, then make some sort of SExprs immediately. But we will worry about that in a little bit.
+
+Outside of QUOTE, we are saying consume the token in the function itself. So now we need to see if the dot expression will work, I think that the only time it consumes is when sexpr finishes an atom or epsilon. it either ends on a epsilon or an atom. Dotted list ends on rpar, proper list can end on rpar, quote, number, symbol, lpar. So proper list does not end. Meaning most of the time it goes into a dotted list.
+
+So now we need to understand how they are constructed and how they are added to each other, if an s expression contains a "("
+
+
+1. NIL, atom: NIL, car: NIL, cdr: NIL
+2. Token, atom: mkTokenSymbol("+"), car: nil, cdr: nil
+3. Cons Cell, atom: nil, car: &SExpr{atom: mkTokenSymbol("+")}, cdr: &SExpr{}
+
+token:
+
+So if we get the parser, we get the quote, then that needs to be turned into a symbol?
+
+Okay so the only thing we need to understand is, how does the SExpression build itself back up? Is it going to be similar to what we were doing before where its just stored in the car/cdr?
+
+
+{"'(1 2)", "(QUOTE . ((1 . (2 . NIL)) . NIL))"},
+{"'(1 . 2)", "(QUOTE . ((1 . 2) . NIL))"},
+{"(quote . (1 . 2))", "(QUOTE . (1 . 2))"},
+{"'a", "(QUOTE . (A . NIL))"},
+{"'(a)", "(QUOTE . ((A . NIL) . NIL))"},
+{"''a", "(QUOTE . ((QUOTE . (A . NIL)) . NIL))"},
+{"''(a)", "(QUOTE . ((QUOTE . ((A . NIL) . NIL)) . NIL))"},
+{"(' a 'b '  c)", "((QUOTE . (A . NIL)) . ((QUOTE . (B . NIL)) . ((QUOTE . (C . NIL)) . NIL)))"},
+
+
+Okay so I guess we are doing this in a recursive way where we keep 
+
+Eval Tests:
+
+TestEvalCAR
+TestEvalCDR
+TestEvalLENGTH
+TestEvalProduct
+TestEvalLISTP
+TestEvalZEROP

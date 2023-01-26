@@ -1,0 +1,24 @@
+Goals(Queries)
+Questions that we can ask the system
+Goal of the form: g1, g2, ..., gk (subgoals)
+?parent(X, kim), parent(X,kent).
+? parent(_, X).
+
+Rules: 
+<term> :- <term1>, <term2>, ..., <termn>
+
+append(X,Y,Z) = true if append(X,Y) = Z
+Examples:
+
+append([],[1],[1]).
+append([1],[],[1]).
+append([1,2],[3],[1,2,3]). 
+
+Questions about append:
+append([],[],[]) true
+append([],[1],[1]) true
+append([1,2],[3], [1,2,3]).
+append([1], [], []).
+
+
+Arithmetic expressions do not evaluate unless forced to(must use is) in order to do so.

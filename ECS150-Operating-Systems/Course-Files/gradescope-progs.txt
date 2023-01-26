@@ -1,0 +1,182 @@
+Program 1:
+
+Error messages:
+Usage: timeout sec command args
+	-- exit status code 1
+<argv[1]> is not a positive integer
+	-- exit status code 2
+execve: <perror message>
+	-- exit status code 3
+Internal error: execve returned non-zero!
+	-- exit status code 3
+fork: <perror message>
+	-- exit status code 3
+wait: <perror message>
+	-- exit status code 3
+
+Test case 1: (runsec is the program in ~bishop/ecs150-lab1)
+arguments: 5 /autograder/source/tests/timeout/runsec 10
+exit status on success: 0
+input: none
+output:
+1
+2
+3
+4
+5
+errors: none
+
+Test case 2:
+arguments: 10 ./runsec 5
+exit status on success: 0
+input: none
+output:
+1
+2
+3
+4
+5
+DONE!
+errors: none
+
+Test case 3:
+arguments: 10 sleep 60
+exit status on success: 0
+input: none
+output: none
+errors: "execve: No such file or directory"
+
+Test case 4:
+arguments: 1 /bin/sleep 4
+exit status on success: 0
+input: none
+output: none
+errors: none
+
+Program 2:
+
+Error messages:
+time: <perror message>
+
+Test case 1:
+arguments: none
+exit status on success: 0
+input: none
+output: each line below is prefixed by the current date and time in ctime(3) format, without the newline
+Received signal 1 (SIGHUP)
+Received signal 2 (SIGINT)
+Received signal 3 (SIGQUIT)
+Received signal 4 (SIGILL)
+Received signal 5 (SIGTRAP)
+Received signal 6 (SIGABRT)
+Received signal 7 (SIGEMT)
+Received signal 8 (SIGFPE)
+Received signal 10 (SIGBUS)
+Received signal 11 (SIGSEGV)
+Received signal 12 (SIGSYS)
+Received signal 13 (SIGPIPE)
+Received signal 14 (SIGALRM)
+Received signal 15 (SIGTERM)
+Received signal 16 (SIGUSR1)
+Received signal 17 (SIGUSR2)
+Received signal 18 (SIGCHLD)
+Received signal 20 (SIGTSTP)
+Received signal 21 (SIGTTIN)
+Received signal 22 (SIGTTOU)
+Received signal 23 (SIGSTOP)
+Received signal 24 (SIGXCPU)
+Received signal 25 (SIGXFSZ)
+Received signal 26 (SIGVTALRM)
+Received signal 27 (SIGPROF)
+Received signal 28 (SIGWINCH)
+Received signal 29 (SIGPOLL)
+Received signal 30 (SIGUSR1)
+Received signal 31 (SIGUSR2)
+errors: none
+
+'
+Program 3:
+
+Error messages:
+Usage: <argv[0]> file1 file2
+<file name>: <perror message>
+
+In what follows, reallysoftlink is a symbolic link to softlink
+and softlink is a symbolic link to xyzzy. hardlink is a regular
+link to xyzzy. Those are the only files present.
+
+
+Test 1: 
+arguments: xyzzy hardlink
+exit status on success: 0
+input: none
+output: "These files are linked."
+errors: none
+
+Test 2: 
+arguments: xyzzy softlink
+exit status on success: 0
+input: none
+output: "softlink is a symbolic link to xyzzy"
+errors: none
+
+Test 3: 
+arguments: reallysoftlink xyzzy
+exit status on success: 0
+input: none
+output: "These files are linked."
+errors: none
+
+Test 4: 
+arguments: softlink reallysoftlink
+exit status on success: 0
+input: none
+output: "These files are linked."
+errors: none
+
+Test 5: 
+arguments: abx xyzzy
+exit status on success: 1
+input: none
+output: none
+errors: "abx: No such file or directory"
+
+
+Extra Credit:
+
+Test case 1:
+arguments: 5 sleep 10
+exit status on success: 0
+input: none
+output: none
+errors: none
+
+Test case 2: (runsec is the program in ~bishop/ecs150-lab1)
+arguments: 4 ./runsec 20
+exit status on success: 0
+input: none
+output:
+1
+2
+3
+4
+errors: none
+
+Test case 3:
+arguments: 20 ./runsec 4
+exit status on success: 0
+input: none
+output: 
+1
+2
+3
+4
+DONE!
+errors: none
+
+Test case 4:
+arguments: 5 slep 10
+exit status on success: 0
+input: none
+output: none
+errors: "execve: No such file or directory"

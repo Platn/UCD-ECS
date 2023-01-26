@@ -1,0 +1,56 @@
+sigma["X"] = TermX, make Variable
+
+Union is the only one that changes the schema for that function, our sigma is the one that holds it. 
+For the setup does that mean that the vars[s][0] and so on and so forth, wait does this make sense?
+vars[s]
+
+one term that maps to an array of terms
+
+It just takes in f(A,B,C,D,E,F) meaning that it is just taking in the termS, 
+
+So if it consists of all variables, it can be any one of them,
+otherwise, it will choose the non-variable, if multiple non-variables exist, then either can be the output of the schema
+
+It doesn't describe which of the non-variables has to be a scheme of c, it does not depend on that. if you have a variable, you can unify it with anything, you can unify it with anything, so if you have an equivalence class of terms, if the equivalence class consists of x and y and so on, now I have to unify with two, two needs to unify with everything in that equivalence class, the schema is a special representation that allows you to fulfill that constraint
+
+for C = {X, Y, f(Z),f(a)}
+X:2 , Y:2 , f(Z) ! 2
+
+Schema function will not try to pick X or Y and go straight to f(Z), so that it doesn't waste time unifying it. So the schema function will first pick the non-variable before anything else.
+
+In order to find out whether two terms are in the same equivalence class. You will just find out their representatives and check whether they are the same. This representative is just checking whether they are in the same equivalence class.
+
+Schema is different type of representative of that class, which can be available only if everything is a variable, otherwise it is a non-variable. So we need a loop that passes in all of the terms. But is it passing in all of the terms or is it checking var list? 
+
+
+Ignore the two first DS if you're using DJS
+Map going from representative to the schema term for the class
+
+When you're using two sets which one should be the representative and which one should not.
+Instead of going from set C to a schema, you're just going from a representative of that set of equivalence classes to that schema, the schema of a term is just itself, boolean flags and acyclic set to false
+
+vars map that goes from representative of a class of a class to a variable which will be updated by the algorithm
+
+In the end, we want this sigma which is the actual mapping, going from a variable to a term
+Highlighted in yellow are the parts that are not part of our current data structures, so the part with the size and what not needs to be handled. Yellow parts are the parts that update the vars map and schema
+
+Essentially the parts not in highlighted can be reused from our code. We are updating the class and representatives, the size, required of a disjoint set. Find you do not have to do anything, you just call your disjointset find
+
+FindSolution: It does something that we look at, in the end, it will actually update the map
+
+At the top level
+
+S = f(a) t = f(a) // Same
+
+for the s = f(s1,...,sn), let s = a, then if some value from s1 to sn equals to f(a), enter the loop
+It will recursively call s with a where the same time happens, but then acyclic is true, it clears.
+
+Tomorrow we will go over this more. We should have done this instead of spending the day burning this out.
+
+Its going to take in a term so it will have to iterate over that term?
+
+I get why setup should just be done on every variable. So we need to do a recursive function to get through each term. Basically have setup be called recursively.
+
+Schema C will go into the list of arguments and determine which of them will be the representative, now Union is the only time we change them
+
+s = x t = 2

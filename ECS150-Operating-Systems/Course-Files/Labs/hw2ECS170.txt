@@ -1,0 +1,403 @@
+import copy
+import numpy as np
+
+# Either we check for repeat paths or we decide to try to change the heuristics,
+# For some reason it doesn't like the stored nodes?
+# We know for some reason the goal isn't being checked or cleared
+
+global dict # Used to keep track of repeat
+dict = {}
+
+class Heuristic:
+    """ Heuristic class is used to pair together the heuristic value with the state
+    This will be used with a priority queue to determine who goes first
+    """
+    
+    numBlocked = -1
+    state = []
+
+    def __init__(self, numBlocked, state):
+        self.state = state
+        self.numBlocked = numBlocked
+
+    def __lt__(self, next):
+        return self.numBlocked < next.numBlocked
+
+
+def rushHour(goal,start):
+    blockNum = findBlocked(start)
+    startNode = Heuristic(blockNum, start) # Convert to node for consistency
+    
+    val = reverse(stateSearch([startNode],goal,[],9))
+    for i in val:
+        print(i.state)
+    # return reverse(stateSearch([startNode],goal,[],9))
+
+
+def stateSearch(unexplored, goal, path,maxplen):
+    if unexplored == []: 
+        return []
+    elif goal == minSort(unexplored)[0].numBlocked:
+        return cons(head(minSort(unexplored)),path)
+    elif len(path) > maxplen: # we may or may not need this
+        return []
+    else:
+        result = stateSearch(generateNewStates(head(minSort(unexplored))),
+                             goal,
+                             cons(head(minSort(unexplored)), path), maxplen)
+        if result != []:
+            # print(len(path))
+            return result
+        else:
+            return stateSearch(minSort(tail(unexplored)), goal,
+                                path, maxplen)
+
+def generateNewStates(currNode):
+    # Both functions should return an array of heuristics class to be used for the search
+    # for i in currNode.state:
+        # print(i)
+    return readHrznCars(currNode.state) + readVertCars(currNode.state) 
+
+def readHrznCars(currState):
+    global dict
+    if currState == []:
+        return None
+    stateArr = []
+    charHold = '\0'
+    startPosX = -1
+    startPosY = -1
+    endPosX = -1
+    endPosY = -1
+
+    # for i in currState:
+    #     print(i)
+    # print("\n")
+    for i in range(0,6):
+        for j in range(0,6):
+            if charHold != '\0': # At least one thing is detected
+                if currState[i][j] == charHold: # If they are repeat
+                    # Change the end values
+                    endPosX = i
+                    endPosY = j
+                elif currState[i][j] != '_' and currState[i][j] != charHold:
+                    """ If there is a new car, it should try to generate new states L/R
+                        then it will reset the held char and pos to the new one
+                        We need to check that the startPosX and End PosX don't clash
+                    """
+
+                    if startPosX != endPosX or startPosY != endPosY:
+                        leftState = generateLeftState(currState, startPosX, startPosY, endPosX, endPosY)
+                        
+                        if(len(leftState) != 0):
+                            checkStr = convToStr(leftState)
+                            if not checkStr in dict:
+                                leftBlocked = findBlocked(leftState)
+                                leftHeur = Heuristic(leftBlocked, leftState)
+                                stateArr.append(leftHeur)
+                                dict[checkStr] = True
+                    
+                        rightState = generateRightState(currState, startPosX, startPosY, endPosX, endPosY)
+
+                        if(len(rightState) != 0):
+                            checkStr = convToStr(rightState)
+                            if not checkStr in dict:
+                                rightBlocked = findBlocked(rightState)
+                                rightHeur = Heuristic(rightBlocked, rightState)
+                                stateArr.append(rightHeur)
+                                dict[checkStr] = True
+                                # print("Distinct1:")
+                                # print(checkStr)
+                                # print(dict[checkStr])
+                    
+                    charHold = currState[i][j]
+                    startPosX = endPosX = i
+                    startPosY = endPosY = j
+
+                else:
+                    # If it finds a blank, try to generate, then reset the hold
+                    if startPosX != endPosX or startPosY != endPosY:
+                        leftState = generateLeftState(currState, startPosX, startPosY, endPosX, endPosY)
+                        if(len(leftState) != 0):
+                            checkStr = convToStr(leftState)
+                            if not checkStr in dict:
+                                leftBlocked = findBlocked(leftState)
+                                leftHeur = Heuristic(leftBlocked, leftState)
+                                stateArr.append(leftHeur)
+                                dict[checkStr] = True
+                                # print("Distinct1:")
+                                # print(checkStr)
+                                # print(dict[checkStr])
+                        
+                        rightState = generateRightState(currState, startPosX, startPosY, endPosX, endPosY)
+                        
+
+                        if(len(rightState) != 0):
+                            checkStr = convToStr(rightState)
+                            if not checkStr in dict:
+                                rightBlocked = findBlocked(rightState)
+                                rightHeur = Heuristic(rightBlocked, rightState)
+                                stateArr.append(rightHeur)
+                                dict[checkStr] = True
+                                # print("Distinct1:")
+                                # print(checkStr)
+                                # print(dict[checkStr])
+
+                    charHold = '\0'
+                    startPosX = endposX = -1
+                    startPosY = endposY = -1
+                    
+            else: # Nothing is being held
+                if currState[i][j] != '_': # If its not blank
+                    charHold = currState[i][j] # Hold it for checking
+                    startPosX = endPosX = i
+                    startPosY = endPosY = j
+        # Restart the position after each row, column for vert
+        charHold = '\0'
+        startPosX = -1
+        startPosY = -1
+        endPosX = -1
+        endPosY = -1
+    # Is it better we just send it through numblock here or do we do that later...?
+    # print("Length of arr:")
+    print(len(stateArr))
+    return stateArr
+
+def readVertCars(currState): # Still needs to be worked on
+    stateArr = []
+    charHold = '\0'
+    startPosX = -1
+    startPosY = -1
+    endPosX = -1
+    endPosY = -1
+
+    # for i in currState:
+    #     print(i)
+    # print("\n")
+    for j in range(0,6):
+        for i in range(0,6):
+            if charHold != '\0': # At least one thing is detected
+                if currState[i][j] == charHold: # If they are repeat
+                    # Change the end values
+                    endPosX = i
+                    endPosY = j
+                elif currState[i][j] != '_' and currState[i][j] != charHold:
+                    """ If there is a new car, it should try to generate new states L/R
+                        then it will reset the held char and pos to the new one
+                        We need to check that the startPosX and End PosX don't clash
+                    """
+
+                    if startPosX != endPosX or startPosY != endPosY:
+                        upState = generateUpState(currState, startPosX, startPosY, endPosX, endPosY)
+                        if(len(upState) != 0):
+                            checkStr = convToStr(upState)
+                            if not checkStr in dict:
+                                upBlocked = findBlocked(upState)
+                                upHeur = Heuristic(upBlocked, upState)
+                                stateArr.append(upHeur)
+                                dict[checkStr] = True
+                    
+                        downState = generateDownState(currState, startPosX, startPosY, endPosX, endPosY)
+                        if(len(downState) != 0):
+                            checkStr = convToStr(downState)
+                            if not checkStr in dict:
+                                leftBlocked = findBlocked(downState)
+                                leftHeur = Heuristic(leftBlocked, downState)
+                                stateArr.append(leftHeur)
+                                dict[checkStr] = True
+                    
+                    charHold = currState[i][j]
+                    startPosX = endPosX = i
+                    startPosY = endPosY = j
+
+                else:
+                    # If it finds a blank, try to generate, then reset the hold
+                    if startPosX != endPosX or startPosY != endPosY:
+                        upState = generateUpState(currState, startPosX, startPosY, endPosX, endPosY)
+                        if(len(upState) != 0):
+                            checkStr = convToStr(upState)
+                            if not checkStr in dict:
+                                upBlocked = findBlocked(upState)
+                                upHeur = Heuristic(upBlocked, upState)
+                                stateArr.append(upHeur)
+                                dict[checkStr] = True
+                    
+                        downState = generateDownState(currState, startPosX, startPosY, endPosX, endPosY)
+                        if(len(downState) != 0):
+                            checkStr = convToStr(downState)
+                            if not checkStr in dict:
+                                leftBlocked = findBlocked(downState)
+                                leftHeur = Heuristic(leftBlocked, downState)
+                                stateArr.append(leftHeur)
+                                dict[checkStr] = True
+
+                    charHold = '\0'
+                    startPosX = endposX = -1
+                    startPosY = endposY = -1
+                    
+            else: # Nothing is being held
+                if currState[i][j] != '_': # If its not blank
+                    charHold = currState[i][j] # Hold it for checking
+                    startPosX = endPosX = i
+                    startPosY = endPosY = j
+        # Restart the position after each row, column for vert
+        charHold = '\0'
+        startPosX = -1
+        startPosY = -1
+        endPosX = -1
+        endPosY = -1
+    # Is it better we just send it through numblock here or do we do that later...?
+    # print("Length of arr:")
+    print(len(stateArr))
+    return stateArr
+
+def generateUpState(currState, startX, startY, endX, endY):
+    # print("Move Up")
+    # for i in currState:
+    #     print(i)
+        
+    if startX - 1 < 0: # Prevent out of bounds
+        return []
+    elif currState[startX - 1][startY] != "-": # Another car blocks
+        return []
+    
+    newState = copy.deepcopy(currState)
+    
+    hold = newState[endX][endY]
+    for i in range(1, endX - startX):
+        newState[startX-i] = newState[startX-i][0:startY] + hold + newState[startX-i][startY+1:]
+    
+    newState[endX] = newState[endX][0:startY] + "-" + newState[endX][startY+1:]
+
+    # for i in newState:
+    #     print(i)
+    return newState
+
+def generateDownState(currState, startX, startY, endX, endY):
+    # print("Move Down")
+    # for i in currState:
+    #     print(i)
+        
+    if endX + 1 > 5: # Prevent out of bounds
+        return []
+    elif currState[endX + 1][startY] != "-": # Another car blocks
+        return []
+    
+    newState = copy.deepcopy(currState)
+    
+    hold = newState[endX][endY]
+    for i in range(0, endX - startX + 2):
+        newState[startX+i] = newState[startX+i][0:startY] + hold + newState[startX+i][startY+1:]
+    
+    newState[startX] = newState[startX][0:startY] + "-" + newState[startX][startY+1:]
+
+    for i in newState:
+        print(i)
+    return newState
+
+def generateLeftState(currState, startX, startY, endX, endY):
+    # print("Move Left")
+    # print(currState)
+    newState = copy.deepcopy(currState)
+
+    if startY - 1 < 0:
+        return []
+    elif currState[startX][startY-1] != "-": # Another car is
+        return []
+
+    newState[startX] = newState[startX][0:startY - 1] + newState[startX][startY:endY+1] + "-" + newState[startX][endY+1:]
+    # for i in newState:
+    #     print(i)
+
+    return newState
+
+def generateRightState(currState, startX, startY, endX, endY):
+    # print("Move Right")
+    # print(currState)
+
+    if endY + 1 > 5:
+        print("EndY")
+        return []
+
+    elif currState[startX][endY+1] != "-": # Another car is
+        return []
+
+    newState = copy.deepcopy(currState)
+    
+    # Also check 
+
+    newState[startX] = newState[startX][0:startY] + "-" + newState[startX][startY:endY+1] + newState[startX][endY+2:]
+    # print(newState[startX])
+
+    return newState
+
+def findBlocked(curr_state):
+    """ findBlocked() is the heuristic function h(n).
+    It is designed to determine the number of cars blocking X in its current state from the end state
+    """
+    pos_x = -1
+    # Search for the last index of X
+    for i in range(0,6):
+        if curr_state[2][i] == 'X':
+            # print("X found")
+            pos_x = i
+    # print("PosX: " + str(pos_x)) 
+    blocked_cars = 0
+    for i in range(pos_x + 1,6):
+        if curr_state[2][i] != "-":
+            blocked_cars += 1
+
+    return 1 + blocked_cars # Placeholder
+
+def reverse(st):
+    return st[::-1]
+
+def cons(item,lst): # Appends to the front 
+    return [item] + lst
+
+def head(lst):
+    # How do we handle it if it is none
+    return lst[0]
+def tail(lst):
+    return lst[1:]
+
+def minSort(heurList):
+    if len(heurList) <= 1:
+        return heurList
+    newList = copy.deepcopy(heurList)
+    newList.sort(key=lambda x: x.numBlocked)
+    return newList
+
+def convToStr(currState):
+    newStr = ""
+
+    for i in currState:
+        newStr = newStr + i
+    # print("New String: ")
+    return newStr
+
+# convToStr(["--B---","--B---","XXB---","--AA--", "------","------"])
+rushHour(0, ["--B---","--B---","XXB---","--AA--", "------","------"])
+# print(dict.items())
+
+# output = readVertCars(["--B---","--B---","XXB---","--AA--", "------","------"])
+# print(output[0])
+# print(0,["--B---","--B---","XXB---","--AA--", "------","------"])
+
+# value = Heuristic(1,["--B---","--B---","XXB---","--AA--", "------","------"])
+# print(readHrznCars(value.state))
+
+# newVal = ["--B---","--B---","XXB---","---AA-", "------","------"]
+# print(readVertCars(newVal))
+
+# print(generateLeftState(["--B---","--B---","XXB---","--AA--", "------","------"], 3,2,3,3))
+# print(generateRightState(["--B---","--B---","XXB---","--AA--", "------","------"], 3,2,3,3))
+# rush_hour(0, ["--B---","--B---","XXB---","--AA--", "------","------"])
+
+# print(generateDownState(["--B---","--B---","XXB---","---AA-", "------","------"], 0,2,2,2))
+# print(generateUpState(['------', '--B---', 'XXB---', '--BAA-', '------', '------'], 1,2,3,2))
+
+# Other heuristics can be: Size | Direction of Movement Prioritization | Max steps in Direction
+
+# Explored States are different from generated states, generated states are not explored until they are removed from the queue
+# Once it goes through the heuristic function, is it considered explored? Yes, in part. Once it generates the new state,
+# it will be pushed through the heuristic function and that labels it as explored. So the 0 means that there are 0 explored

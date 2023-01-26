@@ -1,0 +1,231 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!-- saved from url=(0069)http://nob.cs.ucdavis.edu/classes/ecs150-2022-02/homework/lab2r2.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+    
+    <title>Lab Exercise 2</title>
+    </head>
+    <body>
+    <h1>Lab Exercise 2 <span style="color:red">Revision 2</span></h1>
+<center>
+<p style="padding:6px; color: red; border: red 2px solid; width: 700px">
+The size of a team was slightly modified. The description of the input was moved to before the section<br>“What You Are to Do”. The need to check input is listed. When to block has also been clarified;<br>in particular, for I/O, do not block when the process has less than 2 time units to run.
+</p>
+</center>
+<b>Due</b>: June 2, 2022<br>
+<b>Points</b>: 100<br>
+<hr>
+<p>
+Please form a team of 2 or 3. Include the names of all team members in the header comment.
+One person needs to submit the program; the other team members must submit a short note identifying who turned in the program.
+</p><h2>Introduction</h2>
+<p>
+This assignment has three goals: first, to write code that is functionally identical to the low-level blocking/unblocking code and dispatching code of any operating system; to measure the performance of the system using many of the important measures used to evaluate operating systems performance; and finally, to practice using C structures and pointers.
+</p><h2>The Problem</h2>
+<p>
+The canonical model of a process in an operating system is:
+</p><pre><tt>
+		do
+			compute for a bit
+			do input or output for a bit
+		until done
+</tt></pre>
+<p>
+Here, we see that a job computes for some amount of time and then does some I/O, which also takes a varied amount of time.  In this assignment, we shall build that part of an operating system that maintains the ready queue, and that part which maintains the I/O queue.  We shall then simulate the time various processes would spend executing and doing I/O, and gather statistics for a variety of job scheduling algorithms.
+</p><p>
+</p><h2>Input Data</h2>
+<p>
+Each job has four attributes associated with it: its name, run time, and the probability of blocking.  The name is at most 10 characters long.   The run time is an integer; the probability of blocking is a floating point number between 0 and 1 inclusive.
+</p><p>
+The input file is a series of lines with three columns, the first being the name (and no more than 10 characters), the second the run time, and the third the probability of blocking.  For example,
+</p><center>
+<table>
+<tbody><tr><td>editor</td><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><td> 5</td><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><td> 0.87</td></tr>
+<tr><td>compiler</td><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><td> 40</td><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><td> 0.53</td></tr>
+<tr><td>adventure</td><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><td> 30</td><td>&nbsp;&nbsp;&nbsp;&nbsp;</td><td> 0.72</td></tr>
+</tbody></table>
+</center>
+Notice that the columns are separated by one or more blanks and/or tabs. Remember to do error checking; specifically, check the following:
+<ul>
+<li>The name is no more than 10 characters. (You may assume no characters other than letters and digits make up the name, in particular no whitespace will appear in the name.)
+</li><li>The run time ise an integer 1 or more.
+</li><li>The probability is a decimal number between 0 and 1 with 2 decimal places.
+</li></ul>
+<p>
+</p><h2>What You Are To Do</h2>
+<p>
+After reading in the job information (see below), your program will then simulate the execution of those jobs.  There are two scheduling policies involved.  For the first part of the programming assignment, you are to use First Come First Serve as both the CPU and I/O scheduling policies; for the second part, you are to use Round Robin as the CPU scheduling policy and First Come First Serve as the I/O policy.
+</p><p>
+When a process is dispatched to the CPU, you must determine whether it is to block for I/O (and is to be transferred to the I/O queue). To do this, <i>first check that the process has at least 2 time units left to run; if it does not, do not block. Do this before generating the floating point number to determine whether to block.</i> generate a random number between 0 and 1. Then compare it to the probability that the process will block (obtained from the input, as above). If the number you generated is less than the input probability, the process blocks; otherwise not.
+</p><p>
+For the First Come First Serve CPU scheduling policy, if the process does not block, it will run until it finishes. If the process is to block, you must then decide how long it will run before blocking (again, using a random number generator). This value must be an integer between 1 and its remaining run time inclusive.
+</p><p>
+For the Round Robin CPU scheduling policy, you have to consider the same issues. Here, though, you also have to handle the quantum of 5. So to determine when to block, generate a random integer between 1 and 5 inclusive to determine how long the process will run before blocking.
+</p><p>
+For the I/O queue, the next request to execute is the first one in the queue. The amount of time needed to service this request is to be generated randomly and be an integer between 1 and 30 inclusive. Once the I/O request is started, the entire time needed to service it is dedicated to that request. So, when dispatching the next I/O request, you only need decide how long it will take to complete. When the request completes, the job moves to the end of the ready queue
+</p><p>
+</p><h2>Generating Random Numbers</h2>
+<p>
+For this program, you need to use the function <i>random</i>(3).
+This is a random (well, pseudorandom\footnote{Since they are generated by a mathematical formula, they are not truly random.  However, to all appearances, the sequence of numbers appears to be randomly selected, hence the term “pseudorandom.”  For brevity, however, they are called “random” and with the above understanding we shall use that term here.}) number generator that generates an integer between 0 and <b>RAND_MAX</b> (defined in the header file <i>stdlib.h</i>) inclusive.
+</p><p>
+If you simply call <i>random</i>, each time you run your program, you will get a different series of numbers. While correct, this will make gradescope unusable because it compares your program’s output against reference output. So we need to have everyone use the same starting point for <i>random</i> to begin its generation of random numbers. To do this, call the following function <i><b>exactly</b></i> as below. In particular, make sure you enter the number correctly!
+</p><pre><tt>
+(void) srandom(12345);
+</tt></pre>
+This will initialize <i>random</i> just as in the program used to generate the output files.
+<p>
+<i><b>WARNING:</b></i> there are other functions designed to generate random numbers. Do not use them.
+</p><p>
+</p><h2>User Interface</h2>
+<p>
+Your program should be written to allow the user to specify which scheduling policy (FCFS or Round Robin) they want to simulate using a command line option. Use <tt>-r</tt>:
+</p><center>
+<tt>procsim -r</tt>
+</center>
+to produce output for the Round Robin scheduling policy and the option <tt>-f</tt>:
+<center>
+<tt>procsim -f</tt>
+</center>
+to produce output for the FCFS policy. 
+<p>
+</p><h2>Statistics To Gather</h2>
+<p>
+As you perform the simulation, gather the following statistics.
+</p><p>
+</p><h3>For Each Process</h3>
+<p>
+</p><ul>
+<li> Its name;
+</li><li> Its total CPU time (as read);
+</li><li> The wall clock time at which it was completed (this is the value of your own counter, not the time of day);
+</li><li> How many times the process was given the CPU;
+</li><li> How many times the process blocked for I/O; and
+</li><li> How much time the process spent doing I/O.
+</li></ul>
+<p>
+</p><h3>For the System</h3>
+<p>
+</p><ul>
+<li> The wall clock time at which the simulation finished.
+</li></ul>
+<p>
+</p><h3>For the CPU</h3>
+<p>
+</p><ul>
+<li> Total time spent busy;
+</li><li> Total time spent idle;
+</li><li> CPU utilization (= busy time / total time);
+</li><li> Number of dispatches (number of times a process is moved onto the CPU); and
+</li><li> Overall throughput (= number of processes / total time).
+</li></ul>
+<p>
+</p><h3>For the I/O device</h3>
+<p>
+</p><ul>
+<li> Total time spent busy;
+</li><li> Total time spent idle;
+</li><li> I/O device utilization (= busy time / total time);
+</li><li> Number of times I/O was started; and
+</li><li> Overall throughput (= number of jobs / total time).
+</li></ul>
+<p>
+</p><h2>Output Format</h2>
+<p>
+Your output is to look like this:
+</p><p>
+<tt>Processes:</tt><br>
+</p><table>
+<tbody><tr><td><tt>Name</tt></td><td><tt>CPU time</tt></td><td><tt>When done</tt></td><td><tt># Dispatches</tt></td><td><tt># Blocked for I/O</tt></td><td><tt>I/O time</tt></td></tr>
+<tr><td align="left"><i>name</i></td><td align="right"><i>n</i></td><td align="right"><i>n</i></td><td align="right"><i>n</i></td><td align="right"><i>n</i></td><td align="right"><i>n</i></td></tr>
+<tr><td align="center" columns="6">…</td></tr>
+</tbody></table>
+<p>
+<tt>System:</tt><br>
+<tt>The wall clock time at which the simulation finished:</tt> <i>n</i><br>
+</p><p>
+<tt>CPU:</tt><br>
+<tt>Total time spent busy:</tt> <i>n</i><br>
+<tt>Total time spent idle:</tt> <i>n</i><br>
+<tt>CPU utilization:</tt> <i>nn.nn</i><br>
+<tt>Number of dispatches:</tt> <i>n</i><br> 
+<tt>Overall throughput:</tt> <i>nn.nn</i><br>
+</p><p>
+<tt>I/O device:</tt><br>
+<tt>Total time spent busy:</tt> <i>n</i><br>
+<tt>Total time spent idle:</tt> <i>n</i><br>
+<tt>I/O device utilization:</tt> <i>nn.nn</i><br>
+<tt>Number of times I/O was started:</tt> <i>n</i><br>
+<tt>Overall throughput:</tt> <i>nn.nn</i><br>
+</p><p>
+Text that should appear as shown is in <tt>typewriter font</tt>; text that is to be computed and inserted is in <i>italics</i>; and all numbers should either be integers (shown by <i>n</i>) or have 2 decimal places (shown by <i>nn.nn</i>). In the section of output listing the fields, use single tabs to separate the headings, line up the process names at the beginning of the line, and line up the values at the end of each header. One blank line separates each section of output.
+</p><p>
+This web page may be showing a blank line between the <tt>Process:</tt> header and the table. Your output should <b><i>not</i></b> have that line; the <tt>Processes:</tt> is to be followed by the <tt>Name</tt> line. That blank line is an artifact of how the browser draws the web page.
+</p><p>
+</p><h2>Some Hints</h2>
+<p>
+Here are some suggestions that you should feel free to either take or ignore.  
+</p><p>
+In my solution, I have five major data structures:
+</p><ul>
+<li> An integer variable to record the current (wall clock) time; initially it is 0.
+</li><li> A structure to record information about the CPU.  This includes the relevant statistics, the CPU status (busy or idle), and a time field that gives the time at which the currently running job should stop running.  Of course, that field is relevant only when the CPU status is busy!
+</li><li> A structure to record information about the I/O device.  The structure is analogous to that for the CPU.
+</li><li> A structure to store information about each job.  This consists of the job’s name, its priority, its probability of blocking, the time it is to run, and how much run time remains.  There is also space for two link fields.
+</li><li> A linked list for the ready queue and another for the I/O queue.  These consist of structures for the jobs linked together.
+</li></ul>
+<p>
+The main routine does some initializations, runs the simulation, and prints out the statistics.  The initialization loads the process description information and puts the process in the ready queue, and then the CPU dispatch routine is called to start things rolling.  The I/O device is initially idle.
+</p><p>
+The major portion of the program is the simulation.  The simulator loops until the ready queue and the I/O queue are both empty, at which point the simulation is done.  During each loop, the CPU and I/O structures are checked to see what is to be done next.  The one which finishes earlier is honored (but if one of the two is idle, it is of course ignored.)
+</p><p>
+There is a preempt routine for the CPU and I/O device to deal with the currently running process.  This moves the process from the head of the queue to the end of the appropriate queue.  The next process is then dispatched.
+</p><p>
+Note that the CPU and I/O routines can call each other.  If a process moves to the end of the I/O device to block, the CPU preempt routine should call the I/O dispatcher if the I/O device is idle.  Similarly, if a process moves to the end of the ready queue, the I/O preempt routine should call the CPU dispatcher if the CPU is idle.  Don’t forget that at some point you have to check to see if the currently running process has completed.
+</p><p>
+</p><h2>What to Turn In</h2>
+<p>
+Turn in your program using gradescope in the area for Lab Exercise 2a.
+</p><p>
+Turn in a short (at most, 1 page) writeup in the area for Lab Exercise 2b. In this writeup, compare and contrast the results of your simulation of Round Robin with those of FCFS.  In particular, if these are a representative set of processes for a site, and the site is trying to decide between a Round Robin and a FCFS process scheduling policy, which one should it adopt, or should it combine them in some way?  Why?
+</p><p>
+</p><hr>
+    <table width="100%">
+        <tbody><tr>
+            <td valign="top">
+                <table>
+                    <tbody><tr>
+                        <td>
+                            <img src="./Lab Exercise 2-Revision_files/seal.gif" alt="UC Davis sigil">
+                        </td>
+                        <td valign="middle">
+                            <address>
+                                Matt Bishop<br>
+                                Office: 2209 Watershed Sciences<br>
+                                Phone: +1 (530) 752-8060<br>
+                                Email: <a href="mailto:mabishop@ucdavis.edu">mabishop@ucdavis.edu</a>
+                            </address>
+                        </td>
+                    </tr>
+                </tbody></table>
+            </td>
+            <td align="center">
+                ECS 150, Operating Systems<br>
+                Version of May 12, 2022 at 10:49PM<p>
+            </p></td>
+            <td align="right" valign="middle">
+                <a href="http://nob.cs.ucdavis.edu/classes/ecs150-2022-02/labex/lab2.pdf">You can also obtain a PDF version of this.</a><p>
+                <a href="http://validator.w3.org/check?uri=referer">
+                    <img src="./Lab Exercise 2-Revision_files/valid-html401.png" alt="Valid HTML 4.01 Transitional" height="31px" width="88px">
+                    </a>
+                    <a href="http://www.barebones.com/products/bbedit/index.shtml">
+                        <img src="./Lab Exercise 2-Revision_files/built_with_bbedit_01.gif" alt="Built with BBEdit" height="31px" width="88px">
+                    </a>
+                    <a href="http://www.apple.com/">
+                        <img src="./Lab Exercise 2-Revision_files/macos_stc.gif" alt="Built on a Macintosh" height="31px" width="88px">
+                    </a>
+            </p></td>
+        </tr>
+    </tbody></table>
+
+
+    </body></html>

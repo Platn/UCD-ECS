@@ -1,0 +1,47 @@
+Select is going to be used to determine if either are true, then we are going to return true, otherwise return false. So we are creating a channel based on the number of states to visit. We can do this recursively I guess. But I think that doing this with a for loop could work also, just do things based on how many states there are. We are going to look to see if reachable returns a true on either side, so if ch1 == true, ch2 == true, then return. Otherwise break. So if we do this recursively, I think it would just keep calling reachable as a function 
+
+if we do it this way though, how do we get it
+We create another func and we have it return a value for us
+
+Ah so given that the input is a shared value, it changes and is not something that gets passed on. Because the memory space itself is a pain in the ass.
+
+So no, it causes a problem because of its concurrency.
+
+Combination of go routine and channels, we need to figure out how to have the go routine run and then extract the information from there.
+
+Oh there is the problem of it going all the way down and locking at each point with no return. Given that its recursive and needs to check again. So there's nothing releasing. Meaning it spans infinitely.
+
+We have it split then the for loop continues, after it splits, then it continues to with the new state moving forward, so I think that we would have to channel, but if that happens what happens further down the line? 
+
+No I guess we have to use a map and a done channel?
+
+We do a map where the key is a string and the value is the list of states that are possible, afterwards, it will get the next set of states on the loop.
+
+addState will be composed of all the newStates, but they will have to break from here? It will wait
+
+Possible states gets updated with the next values of newStates, so at each input[i] it just returns the value through a channel to be plugged into newStates, then that list is used at the next iteration.
+
+possible_states [] newStates = transitions(possible_states[0], input[0])
+if 
+
+What if we just go in and do all of the transitions
+
+I think they're all supposed to feed into one channel right? Then we have them all read out and see if any are true?
+
+Are we able to create a single channel and wait until we get a T? So if even one of them is true, they all return. Does that mean that each of the inputs are supposed to spawn a different go routine? Because how else would it be able to move further down and determine if all of them are the same value
+
+We need to make it so that whenever an output returns to us, we do a wg.Done() inside of the for loop, so in the event that x gets pressed, then we do a wg.Done(). Okay what do we do in 
+
+I think that nextStates is one too many?
+
+Two channels, one for detecting true and the other for processing all of the information. Does that mean all of the false that go through, will only be processed once its all done, if that's the case, will that mean that when we first receive our true, we mark the boolean as false? But in order for this to work, it has to. But what about the waiting? It doesn't wait anymore? 
+
+Okay so we are doing a double go routine and we are going to have one of the routines run and check for a true while the other one is going to
+
+So we have two channels and two go routines,
+
+First Attempt: Two go routines, one channel, 
+
+Inside of expect, we just send a separate goroutine
+
+Does that mean two wait groups then? One for the true side and one for the false side? Will we just run them in tandem?

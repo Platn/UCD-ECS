@@ -1,0 +1,170 @@
+What do we do in the event that it is only an atom alone, what happens if its just an atom inside of a function?
+
+I think we have to do a check that maps variables over function
+
+Okay so when it comes to an atom term that gets mapped, what can we do to change that? Or do we continue pursuing the unify result, we need to have it check the mapping. So let's go back and find out exactly where it maps to determine which goes first.
+
+Okay when it comes to this mapping, we need to plan out where it maps forward and back and do checks instead.
+
+Variables > Compound/Number
+If two compounds are being compared than the variables map to the values inside at a 1:1
+
+So when it comes to the mapping, we need to start from the beginning so somewhere in setup or the beginning, also we need to find out if that atom is making a difference in terms of how it maps. It seems like it just maps either or without discriminating, so we need to go in and do checks on our own. 
+
+First step: Run through and see how it maps the X and 1 in our code 
+
+So far in unify, it immediately maps the s and t values to 1
+So encode["X"] = 0, encode["T"] = 1, decode[0] = "X", decode[1] = t, I think encode and decode won't matter but when we do a representative exchange, we need to do checks
+Setup: s.Typ is not a functor, map sigma[s] to 
+
+Encoder is term -> int
+Decoder is int -> term
+
+In order to get the representative, then we need to do either an encoder or decoder.
+We need to check the mapping to see if it exists, so we need to go into encoder and decoder and see if that value exists or not.
+
+
+Setup will send it into populateED, only in Union will it change.
+
+Inside of Find, when we do a class(s), it means that we are looking for the representative
+In order to get the representative, then we need to do u.decode[u.dj.FindSet(encode[s])]
+
+Graph will return the Subset, so when we go in and 
+
+encode[s] returns integer of what integer it holds,
+so now we need to do the representative, using findset. findset will return an integer for the representative.
+Now, we decode that and get a new term, that newTerm we need to check the size
+
+We almost have this working for a small set, we just need to finish implementing the Union, then clear some of the errors.
+If class representative of s is a
+
+
+We need to change UnifClosure and only return an error right?
+s = f(s1, ... , sn), meaning if s is in the list of values. What is this list that we need to look at? Is that just the list of terms that further in the compound?
+
+It is saying that if you find s inside of the list, then mark whatever s that is to be true
+then make a for loop from 1 to n and call FindSolution again
+now mark visited(s) to false
+
+set acyclic(s) to true
+
+for each x in vars(Find(s)) do
+if x != s then
+add [x->s] to front of sigma
+
+unifClosure needs to do a for loop check later, basically go in and check sRep against all arguments in termS.Args[i] and also do a check if tRep against all arguments in termT.Args[i], but I'm wondering if there's a check for length there?
+
+Okay there are two parts here that we have to account for, change t rank and s rank, either in UnifClosure or in Union, we need to determine if it is a variable or not. Does rank beat out variable? According to the Union itself, it first checks to see who has the higher rank, then makes a list of both vars, if the representative of s is a variable, then it will set the representative of itself to be the representative of t,
+
+otherwise on the t it sets the representative over there. 
+
+I think that the setup function is not checking that it actually exists. We need to figure out what class(s) means, class pointers meaning it points to a class but what does the class hold?
+
+I think the problem with our check right now is it is using the termS representative when what we should be doing is using the S and T that get passed in, the representatives only matter further down right?
+
+X f(X)
+
+We need to check if inside of f(x) it contains some X.
+
+None of them seem to be failing because of a cycle, it seems to be failing because otherwise
+
+Find checks if the current class(s) = s, meaning that s is a representative then if it is, return s
+Otherwise set t to find class(s), so class(s) 
+
+class pointers
+a counter of the size of the class stored in the representative
+a pointer from each representative to the schema term for the class
+boolean flags visited and acyclic in each node used in cycle checking(both initialized to false)
+a pointer vars from each representative to a list of all variables in the class (used when generating solutions)
+
+Okay so the schema function: if its a variable with no non-terminals, it outputs the variable, if it is a variable with non-terminals, it returns the non-variable instead
+
+schema *term.Term // Is this correct? I think its not a term but a function, where we 
+vars *term.Term[]
+
+type Rep struct {
+classP *term.Term // Points to itself initially
+size int
+
+acyclic bool
+visited bool
+
+}
+
+Schema function is saying that if it is comp
+
+UnifClosure:
+s := Find(S); find representatives
+t := Find(T); 
+if s and t are the same node then, do nothing,
+else if both are compound, (it might be a singleton list)
+
+For some reason, its not getting hung up on another compound, so we need to check for a compound to variable. It needs to map 
+
+
+
+Find:
+
+if the representative of s is s then return it
+else set T to find the representative of the representative of s
+set the representative of s to t
+return t, this recurses back up for each time t is called, bottom is return of s,
+
+x maps to y, f(y) maps to x
+
+For some reason it is not cycling
+
+f(X, f(Y)) f(Y,X)
+X -> Y then X -> F(y) check f(Y),
+then X checks 
+
+Does that mean we have to check all of the values in the
+
+SchemaC: If a term is a variable not associated with a terminal, it outputs a variable
+If it is a variable and associated with a non-terminal, then it returns the non-variable instead
+
+Wait is that what it is? Basically each time with the schema function, its just the replacement term?
+Which means that the vars list that is contained inside/mapped to each of the representatives are the things that need to be replaced?
+
+Either we need to make a schema map or figure out how it references the schema. Well if it refers back to vars[s] then that is the mapping of what the value is? What is the mapping of the vars[s] alone, its a mapping at a term,
+
+So when we add all of these vars, are we just looking at each key or are we just looking at each value? I feel like I understand how this works, but how do we change the representative? vars[s] will map to the same thing? Or will vars[s] change its value?
+
+foreach x in vars[Find(s)] <- So for each value in 
+
+Inside of union it changes the class(t), which changes the representative pointer of t to s, meaning that representative. When we change the schema are we changing vars[s]? 
+
+FindSolution then tracks all of them and adds them to the sigma. All of the find solutions are then applied?
+
+So is it just a pointer to that representative?
+What I saw earlier was that the schema is updated by union, then which part will change the vars[s] or will it be vars[s][0]?
+
+We need to make a game plan on how to do this. Do we just make a schema map?
+A schema term, what determines if it is a schema term? All schema terms just point to themselves initially means that the terms themselves are the schema terms. They get union
+
+So in setup it just maps it one to one because we put the u.sigma[s] in. But what we need to be doing is adding it in during the FindSolution and having it return it. So when it boils down to it. Our setup and populate may be flawed.
+
+Here the schema function just returns the arguments?
+
+When we get that value back from UnionSet, what do we do with that?
+
+We use decode[UnionSetReturn] and that gives us us a term back, that term
+
+Okay so the thing we have to go back on is change the find and just do find on our own rather than using the find that they gave us
+
+Sigma contains a list of all factors, so if f(X,Y,f(Z)) then sigma picks one of them as the representative and 
+
+
+f1(f2(Y, f3(X, 1, f4(Z, f5(99, s1, s2), s1), s2), X))
+f1(f2(2, f3(s3, 1, f4(X, f5(99, s1, s2), Y), s2), X))
+
+so y = s1 and y = 2,
+s1 != 2 so we have a problem
+
+global startNode
+
+if startNode == nil {
+
+}
+
+Set a start node, which is stored globally, then there will be a check to see if the start node is empty or not, if it is

@@ -1,0 +1,84 @@
+
+
+// Start
+
+sem next = 0;
+int next_count = 0;
+mutex lock = 1
+
+wait(mutex); // Required to enter
+signal(mutex) // Required on exit
+
+// sem next and next_count are used as a waiting queue
+
+A does something
+
+if (next_count > 0)
+	signal(next);
+else
+	signal(mutex);
+
+
+// Condition Variables
+
+sem i_sem = 0
+int i_count = 0
+
+// i.wait()
+i_count++;
+if (next_count > 0) {
+	signal(next);
+}
+
+else {
+	signal(mutex)
+}
+wait(i_sem);
+i_count--;
+
+// Signal
+
+i.signal()
+
+if(i_count > 0) (
+	next_count++;
+	signal(i_sem);
+	wait(next);
+	next_count--;
+}
+
+This system seems to rely on 4 things. 1.It relies on mutex lock as the final key, 2. it relies on a next with count to simulate the queue 3. it allocates a block of next_count > 0 or enter 4. It relies on giving each conditional variable a sem and a count that interacts with the next_count
+
+mutex, urgent, xcond: semaphore;
+urgentcount, xcondcount: integer;
+
+mutex.wait;
+(* procedure body *)
+if urgentcount > 0 then
+urgent.signal;
+else
+mutex.signal;
+
+Replace each x.wait with:
+xcondcount := xcondcount + 1;
+if urgentcount > 0 then
+urgent.signal;
+else
+mutex.signal;
+Xcond.wait;
+xcondcount := xcondcount - 1;
+
+Replace each x.signal with:
+urgentcount := urgentcount + 1;
+if xcondcount > 0 then
+begin
+	xcond.signal;
+	urgent.wait;
+end
+urgentcount := urgentcount – 1;
+
+urgentcount + 1 |Wait: if urgentcount, urgent.signal Signal: if xcondCount xcondSignal urgent.wait | urgentcount -1
+
+Monitor: condition variables toobig toosmall, while statements, int scount
+Binary Semaphore: Mutex: 0 or 1 wait and signal(). Busy, not busy
+Counting Semaphore: Multiple bound

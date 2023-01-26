@@ -1,0 +1,385 @@
+package sexpr
+
+/* Parser is the first part where we have to get it to match rules like we did in HW2
+** If it is valid, then we have to create an S-expr out of it, I think it might be
+** multiple S-expr that are linked through car and cdr, but this might only be
+** if its a cons. So far I have found that dotted_list and proper_list are very
+** similar to each other. Technically the part that differentiates them is just DOT.
+
+** Once Parser is finished, we need to be able to evaluate the entire S-Expr
+** A part of me thinks that we have to iterate through Atom, Car, CDR
+** but I can't be definitive yet because I am still mapping out when to consume
+** each token.
+
+ */
+
+import (
+	"errors"
+	"fmt"
+	// "math/big"
+)
+
+// ErrParser is the error value returned by the Parser if the string is not a
+// valid term.
+// See also https://golang.org/pkg/errors/#New
+// and // https://golang.org/pkg/builtin/#error
+var ErrParser = errors.New("parser error")
+
+// <sexpr>       ::= <atom> | <pars> | QUOTE <sexpr>
+// <atom>        ::= NUMBER | SYMBOL
+// <pars>        ::= LPAR <dotted_list> RPAR | LPAR <proper_list> RPAR
+// <dotted_list> ::= <proper_list> <sexpr> DOT <sexpr>
+// <proper_list> ::= <sexpr> <proper_list> | \epsilon
+type Parser interface {
+	Parse(string) (*SExpr, error)
+}
+
+type ParserImpl struct {
+	tknzer *lexer
+	pkTkn  *token
+	expr   []*token // We will have the tokens just be stored into here so we can iterate through them.
+}
+
+func (p *ParserImpl) nextToken() (*token, error) {
+	if tok := p.pkTkn; tok != nil {
+		p.pkTkn = nil
+		return tok, nil
+	}
+	tok, _ := p.tknzer.next() // This is the same as nextToken
+	return tok, nil
+}
+
+// Used to bring back during peek
+func (p *ParserImpl) backToken(tok *token) {
+	p.pkTkn = tok
+}
+
+func (p *ParserImpl) peekToken() (*token, error) {
+	tok, _ := p.nextToken()
+	p.backToken(tok)
+	return tok, nil
+}
+
+func (p *ParserImpl) Parse(input string) (*SExpr, error) {
+	fmt.Println(input)
+	p.tknzer = newLexer(input) // For the tokenizer, do we just create a slice of values?
+	p.expr = make([]*token, 0)
+	// What if we don't even have the lexer in the function? We can just grab all of the tokens and move forward with them
+	newExpr, err := p.sexprNT()
+	if err != nil {
+		return nil, ErrParser
+	}
+
+	// fmt.Printf("%v\n", newExpr)
+
+	// if nextTok, err := p.nextToken(); err != nil || nextTok.typ != tokenEOF {
+	// 	return nil, ErrParser
+	// }
+
+	/* For loop parser */
+	// i := 0
+	// for ; nxt.typ != tokenEOF; nxt, err = p.nextToken() { // Go until EOF
+	// 	if err != nil {
+	// 		fmt.Println("Error in For")
+	// 		return nil, ErrParser
+	// 	}
+	// 	p.expr = append(p.expr, nxt) // Store the token
+	// 	fmt.Printf("Value: %v Typ: %v\n", p.expr[i].literal, p.expr[i].typ)
+	// 	i++
+
+	// }
+
+	// fmt.Printf("Pexpr: %v Length: %v\n", p.expr, len(p.expr))
+
+	// tempExpr := mkNil()
+	// return tempExpr, nil
+
+	return newExpr, nil // Placeholder
+} // Okay so we still have to go through the rules, what does grabbing the entire parse do for us? Well now we have access to it in slices,
+// Do we just run a for loop that will go through and check, well, this doesn't really seem to change the fact that we need to go into each
+// value and pass along the value. I mean this could simplify things by allowing us to just straight output
+
+func NewParser() Parser {
+	return &ParserImpl{}
+}
+
+func (p *ParserImpl) sexprNT() (*SExpr, error) {
+	tmpTkn, err := p.peekToken()
+	if err != nil {
+		return nil, ErrParser
+	}
+	var newExpr *SExpr
+	switch tmpTkn.typ {
+
+	case tokenNumber, tokenSymbol:
+		// newExpr = mkAtom(tmpTkn) // We might need to change these later
+		newExpr = mkNumber(tmpTkn.num) // Does not require an error check
+
+	case tokenLpar: // <pars>
+		newExpr, err = p.parsNT()
+		if err != nil {
+			return nil, ErrParser
+		}
+	case tokenQuote: // QUOTE <sexprs>
+		p.nextToken() // Consume quote
+		newExpr, err = p.sexprNT()
+
+		if err != nil {
+			fmt.Println("Quote Error")
+			return nil, ErrParser
+		} // Quote might need to do something more later, maybe it just stops eval?
+	}
+
+	return newExpr, nil // Placeholder
+}
+
+func (p *ParserImpl) atomNT() (*SExpr, error) {
+	tkn, err := p.nextToken()
+
+	if err != nil {
+		return nil, ErrParser
+	}
+	var newExprs *SExpr
+	if tkn.typ == tokenNumber { // NUMBER
+		newExprs = mkNumber(tkn.num)
+	} else if tkn.typ == tokenSymbol { // SYMBOL
+		newExprs = mkSymbol(tkn.literal)
+	} else {
+		return newExprs, nil
+	}
+
+	return newExprs, ErrParser
+}
+
+func (p *ParserImpl) parsNT() (*SExpr, error) {
+	tkn, err := p.nextToken() // Consume (
+
+	if err != nil || tkn.typ != tokenLpar { // No LPar match
+		return nil, ErrParser
+	}
+
+	var newExprs *SExpr          // Might need to pass this in or use as store
+	newExprs, err = p.pdListNT() // Move to either a proper list or a
+	if err != nil {
+		return nil, ErrParser
+	}
+
+	tmp, err := p.nextToken() // Consume RPar
+	if err != nil {
+		return nil, ErrParser
+	}
+
+	if tmp.typ != tokenRpar { // No RPar match
+		return nil, ErrParser
+	}
+
+	// For the list, we just are going to make a generic list I guess
+	// Epsilon is the only thing that is proper list
+	return newExprs, nil // Placeholder
+}
+
+func (p *ParserImpl) pListNT() (*SExpr, error) {
+
+	return nil, ErrParser
+}
+
+func (p *ParserImpl) pdListNT() (*SExpr, error) {
+	// Okay but how do we determine the pathway through this? Well we have it that proper list is the first of dotted list, which means
+	// Either way we run into a proper list, only thing that makes a difference is that it compounds. So we have (prop_list sexpr), split is
+	// at the dot so we check if the next input is a dot or not, if it is then its a dotted list, otherwise its a proper list
+	// Properlist just goes into a sexpr, but we determined that we would consume. So left par got consumed, meaning whatever is next is going to
+
+	var newExpr *SExpr
+
+	newExpr, err := p.sexprNT()
+
+	if err != nil {
+		return nil, ErrParser
+	}
+
+	tmp, err := p.peekToken()
+
+	if err != nil {
+		return nil, ErrParser
+	}
+
+	if tmp.typ == tokenDot { // We make a dotted list here
+
+	}
+
+	return newExpr, nil // Placeholder
+}
+
+Okay so why does the rest go through but not the error? What does the epsilon do for us? how do we determine that it would be an epsilon? Meaning it allows us to skip the proper list altogether. So if it can skip the proper list, how do we simulate that?
+
+When it comes to a proper list, how do we code it so that it goes in and tries to get another expression? Well let's start coding the values for our test.
+
+So typically what we have is ((1 2) 3)
+So this is built by doing an sExpr sExpr -
+Each LPar is creating an sexpr and it concludes with another RPar, so we need it to be returned upward. But there's another piece that we can grab, it can be an atom on its own
+
+A dotted list contains a proper list, so if we create a proper list, then it takes anywhere from zero or more s-expr, these expressions can be either atoms, dotted list, etc, meaning we need to investigate dotted, so how do we determine pars? As long as it ends in an rpar, does it matter what kind of list we have? All list can be contained in another list. So we will just go into get a list, is this more just get a list after list after list? Probably. I think the epsilon part is the only thing that makes this interesting. How do we simulate the epsilon?
+
+So basically we return a list based on the parse. 
+
+Okay so ()
+(
+Does that mean whenever we see an RPar, we need to return a nil?
+
+So right now, we need to figure out the break points of rPar. All of them rely upon the rpar, so whenever an RPar exists, it returns. So how do we determine what's going to happen? That's interesting, proper list on epsilon is the only one that has an rpar. So epsilon means that rpar exists. It says that when an epsilon is attached, then we can anticipate rpar. When it comes to a dotted list, it is never an rpar? So that means that the proper list can only be conducted through rpar.
+
+Okay there are two processes we can go through, first we are going to attempt to just send in some value attached to simulate the same thing. If it works then we can go in and implement it. Our second thing is that we are going to see where in SExpr we need to break it. for some reason its going infinite. So we need to separate and create a map of what goes where. Okay so we know that it cannot be.
+
+(NIL . NIL) : sexprs: car: mkSymbol("NIL") cdr: mkSymbol("NIL")
+
+SExpr{
+//        atom: nil,
+//        car: &SExpr{atom: mkTokenSymbol("+")},
+//        cdr: &SExpr{},
+//    }
+
+Now we have to figure out how to build these values that get us there.
+
+No atoms were passed in so that determines it? Now let's see what happens if we store something in NIL
+
+So from here, we are going to implement it so that it matches the s expression. I guess that each time there is a left parenthesis, we just create a new sexpression? So that would still have to happen inside of sexpr again, so if it hits a left parenthesis, we need to move into sexpres immediately, this might be different where Lpar can be found at any moment right? So we need to make that change. Okay now we have to plan out how its going to go through the parser and the tokens during each point. We know that the Lpar will always create a new sexprs, so does it just keep looping until it reaches some list? Also if its a dotted list, how do we determine that? A dot cannot be followed by a RPar. So we know that if we are in a dotted list, then we can't accept the rpar, so if we are currently on dot, then we check the next one, if its an RPar we return a nil, ErrParser. We also need to figure out how to get a (NIL . NIL) without any problems.
+
+So if we know that placing it into car and cdr, then how do we plan it.
+
+(())
+
+( creates an s express, where does it go to? It goes to proper list, proper list contains an sexpr,
+so we need it to check in s express again. Does Case LPar mean that we enter into Par then? We were deciding that Lpar would create another sexpr. But if it just goes into sexpr again then it loops back, so this is fine that it would create another one. We need it to do a return until the Lpars are not done. Our only problem will be, what will happen if there is no RPar? We need to check if it goes to RPar. Also we need to setup EOF checks at each point. So once we have all of
+( creates another s express
+
+1. LPar creates another SExpr
+2. RPar signals an end, EOF signals an error of parsing
+3. Where do we add them together? Basically inside of SExprs we will have the case LPar set newExpr to mkNil first so that it can store the values, whatever values it gets from there it will store in its car, but how do we know to store it in the cdr? That's what makes it a problem now. Also how do we know when to store it into a cdr versus a car?
+
+Our goal is to get the double brackets to return nil. So where do we start then? We are going to go with the LPar, then what happens next is either it becomes a proper list or dotted list. If we go through the motions of a proper list, does that mean we have to go until the RPar or EOF? But for some reason it gives us a problem. So let's see what happens with LPar, start from there. ParsNT is where it would be expecting the RPar. So what happens while we are parsing. Let's create a scenario from the LPAR
+
+(#
+(+
+()
+Rpar signifies a finished product, if its not a finished product does it then call on sExpr again?
+I think it does, instead of looping in the. So either in every function we do checks, or we are just going to have it keep doing sexpres and its return will only be done from a right par? But if that is the case, then how do we determine what is going to be the next set? So if an sexpr is created it is set to the next function. So basically is it just going to be one whole s expression? Which means that this might be a simpler version. But if it keeps going with this, how do we add onto the next part? Maybe the extra function needs to happen.
+
+Our first attempt will be to do this with only sexpress and see what happens? In that case, we are going to try for sexpr to determine what happens. If we have it so that it continues reading the tokens, a Lpar represents a split and a Rpar indicates a return. Well what if Lpar is not the only time it splits? Or is it that we do actually need the value here. Meaning that if we get a token of RPAR or EOF, which inside of <pars> then we will either return error or return the entire s expression, I think then we are passing the s expr through.
+
+Okay so cdr and car must be paired is the rule here so then how do we link things together? Or is it really just that at the end of it we just. Well it seems like cdr is where it becomes different. What if we send a nil into it. What we need to know is how do we keep getting cdr that is just nil. Do we have to do this manually? Do we just combine the atom together? Do we do the storage of the sexpress? I feel like that's wrong, there has to be a reason why the cdr happens. Okay so I think our concerns can be alleviated, whenever a cdr is created, it creates another quote mark on it. 
+
+now how do we multiple of these? If a cdr contains a cdr? Each cdr and car holds additional cdr and car until it hits an atom? I think the part that is difficult is knowing how they append to each other.
+
+I think the bigger part is figuring out how the sexpr gets added to each other. How do they get split and how are they put together in terms of car and cdr?
+
+Okay so:
+
+Let's start with the invalid parts
+
+Why is ()() invalid?
+
+Also why do I care about Dot? Okay so there are two parts that are fucking dumb. Why is () () invalid? Also let's say we get this part done. 
+
+Okay so we got that part.
+
+Okay so we have the parenthesis part. What we need to do is detect what is after. We also know that inside of a Lpar, its only allowed to have one dot per Lpar, which is detected through the cdr and the car? We know that a dot splits cdr and car, so if both cdr and car are filled, we spit out an error. But how do we know if it should be cdr or car that is pushed in? Wait are dots already given to us? Yeah dots are just given to us. So that's kind of dumb...
+
+Okay so we go in and check for a left par and right par, if no right par exist upon exiting a list, then we error out so inside of list, we choose to accept anything but the EOF. So we decide that inside of pars, if we ever get EOF, its errors. Okay is it just that if at any point if returns an EOF then we just say, that's a problem? I think that might be it. But then we need to ask, how do we get this done.
+
+For a proper list, we make it a nil to start with, where it is mknil, then when it gets returned up, if the values are nil, then we should just make it epsilon?
+Do we just make it go into proper_list and go into dotted_list, whichever returns a value then we just take that?
+
+Every properlist is just Lpar, we need to see what the values are in the list
+
+I think this is saying to try dotted list first. So what we do is go into dotted list and see if the return actually gives us something. So lets do this a little round about, we called dotted list first and if it returns nothing, we go into proper list instead
+
+Okay so how do we get the return type? If we do this by passing the array of exprs, then we should be fine. Okay so I think for this, we are going to keep passing the current index and doing the for loop, that way we can backtrack to where we were before if its not a dotted array. How does this complicate things though? Well if we are going recursive still, then it won't be. We just pass the index and start at the current index, each time, we increase the index by 1? But if we are moving through with lpar and rpar, we have to return an index alongside where we were. Which isn't a problem really, we just have to change the return type to SExpr and int and parse the same way. We could also have a global index, where it says that we were here, if its successful, we keep the same index, if it fails, then return the global index to the previous. Yeah that could work, So basically as we recurse through, we just edit the index each time, our only problem is, 
+
+Okay I think I will try this so that it is able to go through until the end. Basically if the index is greater than the length of the array, we return. 
+
+Summary: 
+1. We are going to do a for loop with a global index stored inside of the ParserImpl, this index will be incremented each time by each function when a token is supposedly "consumed". 
+2. When we get to something like a dotted list or proper_list, we will store the index at the current position in the event that the dotted_list fails, we return the recursion back to proper_list and reset the index to explore proper_list
+2a. If both dotted_list and proper_list return nothing, then it is either error or nil
+2b. If we get something from either dotted_list or proper_list, then we leave the index alone to check the next value. If it is RPar, we return the list, other wise we are adding either to the cdr or the car. Is the sequence just to add to car first then cdr?
+
+Note: we need to track if the index matches the invalid case, so basically if the index is less than the length, or possibly less than the length by 1, then we have a failed case. Okay so we need it so it goes all the way to the total length of the list, meaning it needs to increment each time before moving forward. So we would have to do a check.
+
+Now we have that implemented, we need to have it go into each part and check the token, we enter sexpr. That might cause a problem for us. We won't have any error checks to see if the index is out of bounds or not, so we have to call on a getindex each time.
+
+Okay we need to map this out, for the cnsmtkn, if it increments 
+
+Okay the increment is fine but the getIndex will be the check, it will return an error if the index > (or equal to?) length of array. Get index will only return the index.
+
+We determined that on getIndex if we get an error back, then we cannot use it, which means we return. At this point we need to determine what kind of return, will it be mkNil() or just an empty SExpr?
+
+Are we just making this more complicated than it needs to be? Because if we go all the way down and find that the arguments do not contain a dot, then what do we do?
+
+From the Proper List, what do we do first? We go into sExpr, we only consumed LPar at this point, so it goes and checks again.
+
+We have the Lpar set itself to be newExpr equal to parsNT(), we need to find the spot where we add each of the sexpr together. Okay so how do we detect if there are too many dots? That's the part that bothers me, because a dot is allowed to be after a symbol, but there's nothing counting how many dots are allowed in a recursive loop. Okay I think I get it, when it goes into the dotted_list, then on the first return of sexpr. i think that dot does not appear in an sexpr right? So there is no transition for it to exist? Which means when we go into dotted list to create it, it should consume, I don't think there is a time when we are in sexpr that it reads for. So we will keep that in mind. Now we have one Lpar created, but we don't have it where there are two yet. So now we need to go in and map when the token gets consumed and when to return.
+
+Our return is in pars, that returns a value up, meaning pars will check first the dotted list and see if it gave us a return from the function, then we check if proper_list gives us a return.
+
+We already have it go in as a proper_list, then it checks for a dot, and if it is a dot, then it will branch out, otherwise its a proper list in which it should have checked for a sexpr in front, well we know that an epsilon is the only time that the proper list will end, so do we call on this to be recursive again? It will call proper_list and go through the loop, so at the beginning, we need to check if Rpar or EOF. Okay so right at the beginning, we check if it is RPar or EOF. We put in place the RPar or EOF, let's see if we can get the loop running.
+
+A proper list needs to call on <pars>, wait no, now we don't have a way of making it grab another one, so we need to send it in as an sexpr?
+
+Wait so if the default is dot	
+
+So if its a default, the dot, then we need to do a cons cell? Which means that in pList, we need to create a new conscell that takes in whatever was from above and whatever is below. Or we have to pass in the previous to this current one? So up above we would have to peek the dot? 
+
+Does that mean that this dot only occurs inside of PList then? Or is it that we move to DList if we find a dot, so basically PList after its creation will try to go into an sExpr, well what does the dot mean if we find it in the sexpr, well then the next value is in the cdr of some value, meaning that the current value is returned up and then the previous term gets put into that same value at car.
+
+pList NT()
+( A in peek
+
+Okay so we got it done with the . now we just have to figure out what to do for the additional sexpr, maybe if its a symbol, then we have to have it add to the next one, but what about the third value?
+
+B's cons means that C is in the car and there is a nil in the cdr
+First cons holds A and cons(b), second cons holds B as car and c as cdr, third cons holds c as car and nil as cdr.
+
+What we need to figure out is having plist go until nil, we thought that the sexpr will go into pList again but that's only on a LPar does it go in, so how do we know to send it back in? Well we have it in plist go into pList again and it keeps running it, so I think we just need to do the symbol where it adds it for us. We got BC to be put together, now we just need to figure out how to get A B C together where it is MkConsCell(A, MkConsCell(B, MkConsCell(C, mkNil())))
+
+// i := 0
+	// for ; nxt.typ != tokenEOF; nxt, err = p.nextToken() { // Go until EOF
+	// 	if err != nil {
+	// 		fmt.Println("Error in For")
+	// 		return nil, ErrParser
+	// 	}
+	// 	p.expr = append(p.expr, nxt) // Store the token
+	// 	fmt.Printf("Value: %v Typ: %v\n", p.expr[i].literal, p.expr[i].typ)
+	// 	i++
+
+	// }
+
+	// fmt.Printf("Pexpr: %v Length: %v\n", p.expr, len(p.expr))
+
+	// tempExpr := mkNil()
+	// return tempExpr, nil
+
+
+// Okay if there was a construct function it would check the current one and look one ahead where it would would see the different token types, if the one ahead is a symbol, then it is part of the same list, otherwise it is a new list. Okay it is being read as a cdr instead of an atom. We need to check the loop again to see how it works. We still need to do the check for if a cdr and car get pulled upward. So that's good to note. I think after that we will be fine
+
+Where does the check of adding it go? Its supposed to be after pLoop where it finds a value that pLoop. Ploop has a value, then newExprs needs to move atom to car and Put 
+
+LPAR QUOTE 
+
+( sexpr-> pars
+p.pListNT()
+
+We need to check inside of the dot to see if lpar exist in dot and if it does, we need to go in and add that together
+
+(quote . (1 . 2))
+
+Pars -> sexpr -> dot, dot Lpar means that we have sexpr meaning we have parsNT() sexpr and it gets
+
+(QUOTE . (1 . NIL))
+(QUOTE . (1 . (QUOTE . (NIL . NIL))))
+
+In ListNT(), it is checking if they are 
+
+So what he did was he used the SEnt as just a token
+
+His lPar just goes back into parNT()
+

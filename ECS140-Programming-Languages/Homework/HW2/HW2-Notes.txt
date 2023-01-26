@@ -1,0 +1,263 @@
+
+
+We need to figure out how the lexer fits into this, if it gives us the tokens, then do we advance on the tokens?
+
+Okay so far we got the error to work for the invalid terms.
+
+Our question for tomorrow will be:
+
+Once we have the parser, inside of the parse statement, do we pass the string given to us into the lexer and the lexer spits out the tokens for us to go through the rules? Lexer turns the input string into tokens of f and then we need to use that to map out the statements
+
+We are passed a string into Parse function, parse function then instantiates a lexer object, lexer object takes the passed string and outputs the tokens, the tokens are used to move through the Grammar and determine if it is a valid string, if it is valid then we create a term and then return it, otherwise we return an error. 
+
+parser_test.go inside of brackets will give a demonstration of how the grammar rules will go.
+
+Our parser this time will have to be doing a look ahead instead of a backtracking. So it will have to look at whats available through the stack. It processes them until the terminal and non-terminals.
+
+Okay so we are confirmed on the implementation. We create a new parse.
+
+Term struct is defined by the type of the term. Whether its an atom variable or number, the literal string that represents what that term is, by foo, in the case of compound terms, an atom term as functor and list of arguments. Those arguments are terms themselves. This might require you to point back to something like it was shown in the DAG representation. There's a way of keeping track of the one you have already pointed to or exists.
+
+There are no edge cases hidden from us in this problem. As long as you pass the test cases and have 100% coverage, you should be fine.
+
+Test with Sharing: That is just one X that is its own term, all three X in the test case is representating the same object. We should be representing the same object X. Technically all three arrows are pointing to the X.
+
+
+If we want to run test without sharing, we just comment out the ones we don't want to run. One thing that students do is they take the lexer and read in all of the token, and then get confused. Parser needs to look at one token at a time. That is a nice simplifying assumption when writing a parser.
+
+YOU CAN read it all at one time and fiddle with everything, or structure the parser how discussed in the LL(1) parser or the code that is in Brackets.zip
+
+We're just creating some structure that we can use for homework 4. We will be doing unification of terms. Using a DAG instead of a tree will be important in creating an efficient algorithm.
+
+Bracket parser, if you change the language, do you have to rewrite the entire thing? What is the issue with implementing it in a more generic way? Generic approach takes all of them and parses thing off it. Here we are applying a rule, we can override a function, we create a parse tree instead and make a DAG. Write some code that works for that grammar
+
+Deterministic Finite Automata (DFA)
+Adaptive LL(*)
+ANTLR
+
+ANTLRv4, in this paper referred to as just ANTLR, uses the parsing algorithm Adaptive LL* (ALL*) [7]. ALL* is a left-to-right, leftmost derivation (LL)
+parser with arbitrary lookahead. In this section, we highlight the differences
+between ALL* and traditional LL parsers. We first look at the structure of a
+more traditional LL parser
+
+Our lexer seems to have much more to work with. So does this mean we are making it into a graph and then moving it from state to state. But then when we move from state to state, how do we determine if it is an accept or not.
+
+Our idea would be that if the string is used up or cannot progress then it will end up in a reject and thus produce an error. So now what we need to do is setup the traversal and figure out how to setup the error detection.
+
+So we see that the DAG is just going to be compressing by going back into the atom function and then the variable function. But what is the difference here? It makes it so that it doesn't need to store two additional atom and variables?
+
+Now we have to go back to Parse Function We need to start to determine what we need to write out
+
+So at this point we need to figure out what this means. What tokens are supposed to move us to another part of grammar? Which parts break it. So we now need to know what an atom, a num and a var is. 
+We need to determine what type is compound. So compound is a <functor> LPARenthesis <args> right parenthesis. Args holds term and term can go into compound. So how do we distinguish between the three.
+
+// So we are creating a directed graph and determining what moves through here? Also why are people mentioning having two stacks? Should we go revisit the notes?
+
+We are trying to determine what to put in and what to get out. What other data structures do we need? I think that what we need to map out is the symbols. So if we get an f, what does that map to, also how do we get it so that it goes into the right spot? So let's start with f,
+
+Atoms are lower case letter
+number is strictly num
+Having a token of left par and right par
+Variable is uppercase letter as its start, also an underscore
+Are all we doing is to match what it does?
+What we are returning is term but in the other part, they are returning expression and still have a term. Is there a connection here? term is a function in the other one. Term is a value we return here. Its somewhat strange to me though. If there are two cases then it will peek the token, otherwise it just consumes it. What we need to figure out is the epsilon case
+
+Epsilon case just means that it's a nil, ErrParser, so it's not a big deal. Right how do we determine if epsilon happens. Okay so what is happening with all of this is that even if we detect that value, we can still have other values that move to compound? I don't know if that is true.
+
+We have it working for some f, but now we need it to continue parsing the tokens so that it sees the rest of them instead of doing an instant return. We need to figure out the algorithm.
+
+I am thinking that we are going to use Args[]. I think that we need to append to it in the same way they did in the previous. We are trying to find out how to progress. I need it to consume a term and then return up or add to some term. It appears that when a left bracket is hit, then it gets added to the expression bracket. So we need it check when it gets added to the args. We also need to know what needs to be added to args.
+
+So in the case that the token reaches a parenthesis we have to make it so that it adds to some args. Now the problem is, how do we keep parsing the token? It seems like for us, it just full returns. It seems like the bracket consumes each time when its done. But how do we know to consume or not?
+
+Time to start mapping the functions to their returns and the pathways to make sure that they fit the grammar. We also know that the token types are what need to be mapped.
+
+Okay we have to just go through and match the tokens and find what needs to be returned into the args  versus the other half. Inside of term, we need to decide whether accepting an atom means that it ends or not. Also entering a term means that we have to parse that, but it does not consume. It goes into the function itself. So in terms of consuming a token, how do we determine if it is compound or not?
+When inside of term, an atom does not guarantee an end, so that's the weird part. 
+
+We were told that this is not a LL(1) grammar. So does that mean LR grammar? If it is an LR grammar does that mean each of the tokens passed in is left to right, so we need to make a stack to go right to left? Also how do we parse each pointer? When it comes to a Term, if it gets passed back up, do we have to find out if the term. Two things to note LR grammar versus stack. So if we find a right bracket, it can either take in another right bracket or a variable. This might work better if we just did LR conversion right? Because if we run into an atom, there's no way of determining that its correct from an LL direction, so it makes more sense to go from the right. 
+
+// Time to map the function and token values to each function. We make the assumption that Rpar can only take in two values, which means that we need to check. We need to do RPar then we do <args>
+
+We have compound Rpar -> Args
+Args -> term | <term> COMMA <args>, so when it loops in args, it will always need another term
+
+I think the only problem with our logic here is when we hit functor, it requires an ATOM, will this be a problem? We know that F(x) is required anyways, so the initial one is enforced if we go right to left instead
+
+This can be read in going left or right. For the left derivation, when we hit an atom, then we just go in and determine if there is another atom attached such that the letter just attaches, it would accept a letter, a left parenthesis or even a number because we are calling the function that number.
+
+On the other hand, the right side could do the same where it would be anticipating right parenthesis. In either case we do a peek for the next token and then match it to determine the next step each time? I think that's the result.
+
+Right now we see that the args are a list of values that get added together
+For compound terms, the literal should be empty. So if a term is compound. It is of the form:
+compound term -> atom variable compound term --> arg1 functor
+
+
+So its composition will be functor(ATOM) LPAR, so the thing we have to check is after an ATOM is hit in term, then peek the next token, if the peek gets us a (, then we know its a compound, otherwise it is one of three things, it hits another ATOM, which is just a continuation of the literal so it will go back into term? It goes back into term for each atom. That way when it finally hits either an error or a parenthesis, it will know what to do. It only consumes if it doesn't go to another function. So in our function, if we decide to do a left parse, it would have to check if the number holds anything after the token? But in order to do so, it would have to do a lookahead. Meaning that we do another peek. Peek token gives us the current one. Next token moves it, So if we store the peek token, then go to the next, we need to store the rest
+
+Each expression is stored inside of an array. So each term will be stored into the array as arguments? I honestly think its better to have this be parsed in the right. So let's see if we can get this part done. What if instead of consuming the atom here, then we move onto the next part, it will only be consumed if it is a single atom
+
+Num and Var are going to be terminals here so we will have to return the Term. Which this is what happens. What about in terms of RPAR? What is the type of RPAR? Well just RPAR. Term is just term itself, it probably doesn't get stored. Atom is the only one that we need to worry about due to the compound nature. Compound takes a functor which means that before it gets consumed, it needs to go through the process of CompoundNT().
+
+Now what we have to do figure out how it is stored. Not only that but we need to figure out how the compound runs, we are saying run the rules left to right, then we parse from functor itself, but we know that the functor is an atom, is there a purpose to splitting it? No, but we will do so for the sake of organization. Functor says that it is some atom If it is a compound then it is a functor. But if that is the case, how do we write this? In the functor field, that means that it is attaching another term at each move. So what does functor actually replace. When it comes to functor, we will just have it pass back a term at this point and continue to move on. // That's our current problem. It takes the current and consumes it returning a term in its stead. When this gets returned. Functr is now equal to the term of the values. It is not seeing the ). So our problem now is that for some reason if we put in 0, then 
+
+for both variable and number we need to check if the rest of the tokens are going to be numbers or not. That means for terms, we have to make sure that terms continue on the pattern of terms, so I think we will create a function that will allow for repeating patterns. Which means we have to check each variable
+
+So basically we check the token's literal before we do anything else, wait but if that's the case, then something like 123 should already be parsed right? Meaning that we don't accept anything after. Unless it doesn't read each literal and it parses one by one. After a number is inputted is a number + compound a rule? for some reason with 0, it will take the 0 AND it holds another. Type was 0
+
+*** BIG NOTE: THE TOKENS DO NOT END EVEN IF THE LITERAL DOES, SO IT GOES INFINITE, CHECK for TYP = 0 OR EOF
+
+So now we have the ATOM piece, what do we allow in terms of it being another atom or a continuing atom then? You would think that the atom would be consumed in its entirety... It has been
+
+Nothing says we can't pass another value in, so does that mean we pass another arg in, and see if it returns?
+
+I think that I am going to skip the invalid terms for now. Let's start with a mapping for f(X). Well that worked for getting the error. Now we need to check for the f. Okay so there's a problem, we take in a g but the next one is not.
+
+So now that we have it so that g is detected, we check our next, what is allowed? almost anything is allowed right? g being the end means that it needs to find a way to be an atom, if its an atom, then the next part doesn't immediately return, it will go in and check the next value, it checks to see if it is a functor or not, so that means when we get to this point, it just checks it as an atom and doesn't seem to care about the rest. If we have it care about the rest, will that cause any problems?
+
+Okay so let's talk about what can be before g, we know that before g, it can take a comma, so if the next in line is not a comma, then we toss it? Actually that would make sense. Can we have a right parenthesis? No, but we can have a left parenthesis, meaning that if the thing coming at next token is either a left parenthesis or a comma, then its fine, but if its a right parenthesis or a var, then it is not okay. 
+
+When it comes to a variable, it is the same it is fine if it has a leftPar or a comma. Our other concern now is, if the variable is by itself, with no closing R-par, how do we account for that? Do we actually have to use a stack to find out? If so then we have to read left to right. We don't have a scenario where RPar is already placed, so do we just do a stack so that we don't have to keep doing this? How do we determine if the right side is okay or not? Our variable assumes that it already exists, so if there's no closing bracket and just a variable. Honestly it might just be easier to do a stack. I don't really see a way around it. What else can we do, there's no "this is the first one" that makes it so that it detects if there is a right stack.
+
+Our current problem is that term accepts some var but how do we determine if the function is complete, would r par be the only valid term? No Variable is allowed to accept left and right. So our problem becomes, how do we detect the variable ahead of time. So we need it to hold onto the previous token before we progress, so before we move to the next part. When we move into this part we need it to take an RPar
+
+Okay so 
+
+// <start>    ::= <term> | \epsilon
+// <term>     ::= ATOM | NUM | VAR | <compound>
+// <compound> ::= <functor> LPAR <args> RPAR
+// <functor>  ::= ATOM
+// <args>     ::= <term> | <term> COMMA <args>
+
+<start> -> <term> | EPSILON
+<term> -> ATOM | VAR | NUM | <compound>
+<compound> -> <functor> LPAR <args> RPAR
+<functor> -> ATOM
+<args> -> <term> | <term> COMMA <args>
+
+Functor is only a functor if the next one is a LPAR, otherwise its an atom, which we had an idea like this before. So let's see if we can go through and have it parse where LPAR initiates a functor? Oh. So that's what it is, we need to determine where the break point of a functor would be. Meaning if we find some ATOM and then a parenthesis then we enter into the compound state. Otherwise, it acts just as an atom? What about a variable, well we know that if you enter into a functor, it requires a RPAR, so that means if a Lpar is found, we must continue across the line, so the args,
+
+Let's follow with this idea. So at term, we say that if we hit an ATOM we need to find out it is followed by a LPAR, if not then it is an ATOM and then gets returned? Then we move on
+
+We need to take into account the production rules itself. So with f(X we have it where the production rule did not finish, we didn't account for this did we? Meaning we went in and the atom saw that there is a variable X, then we saw that there is a LPAR, LPAR indicates that we are in term but there is nothing to consume it. So we have to return. That's our problem. We don't have the safeguards in place for termNT. So we need to go back and put those in place. Only if we are in compound can we consider ourselves able to take those values in. So our problem right now is, compound starts at.
+
+For this we need to work on args and RPAR
+
+So now we see that args has term or term comma args, so when it comes to term, we just parse term and check to see if there's a comma, if not then it finishes and we move back up. Wait we check term and find out if its a comma or not, if its not then just term gets sent back up? Break it up into steps, if its not a comma or RPAR, then return. We won't consume RPAR here though. EOF shouldn't be there either, its an argument in a function.
+
+It says that the compound is supposed to be a functor that has some value, how do we pass that in?
+
+It is expecting two args, or at least two addresses? In args, it seems like there is a term holding one
+
+So the args itself is holding a term, that holds another term? Does f not get consumed here? If f does not get consumed here, then our problem is, how do we detect if there is a bracket or not?
+
+One question is, do we pass a functor in at each interval so that it can pair it? If so what happens if we need to do a new functor? We will give it a try.
+
+We need to figure out how it returns the Functor and also when, maybe that is our biggest problem right now?
+
+*************************************************************
+It wants:
+&Term{Typ: TermCompound, Functor: f, Args: []*Term{X}}
+f = &Term{Typ: TermAtom, Literal: "f"}
+
+*************************************************************
+
+
+
+If these are the return types, how do we get the parenthesis? Is it because inside of the args, we assume it has a () on it? In terms of the literal, does that mean that when we return back up, then we need to do 
+
+It wants Args to be nil, so it should not even be containing the term
+
+Term is passed back for ArgsNT for now, we need to start making modifications to ArgNT and figure out what needs to be passed back then. When it comes to modifying term, we might not want term to be altered, so we need something else to take in the value of term. Meaning if term is a variable, then we add it to the args. How do we know when to stop the arg? We have two choices EOF or 
+
+Okay now what we have to do is implement the functor inside before it gets consumed, basically we need to make it so that if the left parenthesis is not there, we make it into an atom, otherwise it goes directly into a functor that is going to be the one that stores the args.
+
+Args:[]*term.Term{(*term.Term)(0x14000112d80), (*term.Term)(0x14000112dc0)}}(0x14000112e00))
+Args:[]*term.Term{(*term.Term)(0x14000112f40)}}(0x14000112e80))
+
+Args:[]*term.Term{(*term.Term)(0x14000112d80), (*term.Term)(0x14000112dc0)}}(0x14000112e00))
+Args:[]*term.Term{(*term.Term)(0x14000112f40)}}(0x14000112e80))
+
+So it seems like it is appending but to the wrong thing. Here what did we append to? FnctTerm at the top appended both of the compounds but what needs to happen is that the args of functor need to have two/three.
+
+Also in the a, it should be functor nil and the arg terms are also nil, so the a is nil, does that mean it takes the args out and then deletes them? So the X term should also be nil. So when the value comes up, it 
+
+Okay so now its appending everything in the
+
+How do we write it so that it parses all of them going up, we need to do the same in the bottom right?
+
+What it looks like is that the argument gets added to functor's argument array, so we have to find a way of going into compound's arguments and then adding it again?
+
+So we have it clear part 8 for 2 arguments, now we have to figure out how to clear 3 arguments. Another part that we have to think about is, how does it go recursively to adding in the arguments? It seems like for argument it needs to just return a Term with the literal inside each of it. So there are two options here right?
+
+Either we go in and check them getting appended or somehow on the recursion it just returns a term that gets stored somewhere. Let's look into how the loop works
+
+I think we get why it only accepts one additional. We need to go in and check the argRecs to see if there is another comma. I think that the term doesn't explore more
+
+Interesting, so it does take in the bar(1,a) and it took in foo(x), it definitely sees it, so now we need to see where it combines it. So what is happening now is that the extra argument is not being stored for some reason. So we need to go in and find out where foo(X) is stored. I think that its argRecs.
+
+So right now, the args are only going into the terms once, we need to make it loop. But does it enter termNT again? Let's try that.
+
+While the peek is still comma, we need to check termNT, so our two choices are going to argNT or TermNT to go back to, I think it makes more sense to go back into TermNT. Now we need to make sure TermNT does consumption. Okay for this part, we are going to create another function that will recursively go through each Term's args and then add it into the main one, then it will set it to nil until the end
+
+When occurs, it goes back in?
+
+We almost have it, what we need to do is have it so that it does a recursive test that will do multiple appends.
+
+f(X,f(X))
+
+create a compound term, create another compound term
+add variable to inner compound term
+see a Lpar, now we return the compound term up
+We see a f and because its been returned up, we add it to a functor,
+
+We might have to do two solutions here. First part is that we need to do a recursive function that goes until the args are nil and then the second part might be that we need to check for comma in TermNT()
+
+Lets see, it needs to replicate the process of the for loop
+
+So what it's going to do is be passed a term, that term is going to check to see if it has arguments, if it does, then those arguments will be checked to see if they have arguments also, in order to do that, it has to go one by one, but doesn't this just involve backtracking anyhow?
+
+Tail: Consume (, Start: 1
+
+That was the difference here. What happened is that it just went back and added each of them together, now where it is a difficult part for us is the fact that we have args going into a loop, I suppose we could remove compound using the rest. So let's see what happens if removing compound as part of the loop. We just need a better way of identifying how the loop puts things together. Either that or we go through the loop, so let's check the loop and then we can return to the recursive application, because for some reason it was able to be done in the brackets part. We need to figure out why it broke earlier.
+
+Okay we got distracted. We are deciding to run the loop.
+
+f(A,g(B,h(C,D)),p(E))
+
+We need to find the problem with our recursion. Why is it stopping? We need to go back to the drawing board to determine when it breaks and gets added to the next part, we know it is inside argsNT but the problem is why does it not get prepended to the previous. It is clear that they're being parsed through, it is just the problem of how do we get the terms to add to the back.
+
+We need to start mapping if it is the compound or if it is the args that puts them together.
+So we know that the term could possibly also add them, but we need to be careful that it is not recursive.
+
+Okay so we can test to see if a recursive solution exists but a part of me feels like its not just having it recursively compound. It seems more like each compound is contained within each other. So when we look at this, yeah it is. Its that for each compound, it adds to itself and then gets added to the one above it. Let's go into our functions and see where it fails to do this. Or maybe map out a way of having it so that it adds at the right spot. 
+
+So we said that we need a value that adds to it, meaning there needs to be some return type, in terms of the comp that gets passed in, what are we assuming about it? We are assuming that it 
+
+Left to right, comp checks to see if there are any args, if there are, then we are going to do the loop.
+
+Wait, we have it so that it parses all of it onto a single term, that means that we need to just find when it needs to add each piece? But when we did that, it gave us a problem where it didn't clear enough? Or it was in the wrong box?
+
+
+for val, _ := p.peekToken(); val.literal != ""; {
+
+	fmt.Print(val)
+	val, _ = p.nextToken()
+}
+
+Is it because whatever is inside of compoundNT, it is not returning up from CompoundNT? Or is it in the argsNT() itself where it is not detecting multiple args?
+
+Okay so new plan of attack, this is what we should have done to begin with to be honest. I think that we are just going to do the stack plan. Our recursive function still works, it is just going to be that we do it as an error check while adding the input to the stack. So basically it will iterate through the string, adding the values onto the stack until it finishes. Do we even need a stack? What if we just do a slice that appends them in order, where if f(x) was already determined from before, then we call on the same one. Meaning that once a compound has been evaluated, then it will reference the map and then just attach it? So we are not going to use a stack, we are just going to do it directly. So now the question is, how does the DAG account for this? Also how do we determine that they are the same? In terms of a value, I think that even numbers and ATOMS count, for our determination of how it goes forward. We just have to map out the DAG for where it begins and ends
+
+In foo(X, X, X) it says that there are indeed 3 of them but what is weird is that they are matching more than one terms. So I think the X needs to not match if its already been found? Does that mean the literal is crossed off or does it mean that it wants it to be connected to another node? So that node would be a pointer to another node? it looks like it points back to another creation already made, but how do you have it point back? Is it in the args that its stored? I think that's the only question I have. It becomes compounded into Atom and Variable of something that has already occurred. So basically if X is already created it should not contain a literal, it will set its variable equal to X and the functor of X. If there is no functor of that X, then we its just nil. A functor will be at the top level. So we just create a map and at each return it will map the node to some value. So how do we determine how to map this though? We map it through its string value. Meaning when we get to term reached, we map it to its original value
+
+Okay so we got it to print out the term itself. Now what we have to do is create a map that will identify if the term has already been evaluated, if it has, it will not create a new value, instead it will create a value that points to an already created one, either that or it will append the already created value to itself. This might not speed anything up because we aren't doing it with a DAG but if it gets it done, I don't care. Just as long as we get past the 100 seconds interval. If this works out, then I will be happy.
+
+Our current idea is this: We are going to do a check whenever a creation exists, so that means that whenever a compound is being returned up or an arg is returned up, we will first check to see if it already exists, if it does, then we create a new node but we append the already created one to it (this step might be that we just return the one that was already created by map also) else, it will create a new node and then map it. It will also be returned, so I think the latter of it being returned again from a map makes more sense.
+
+Our map will have to check the value by matching the string to the value. So I think we check each time for the node
+
+We create the atom first, that way it gets added in. Otherwise, what can we do right?
+What if its in the creation of the atom. So we have it in reverse, we need it to just create the atom immediately and then if it has one of them
+
+Okay we need to restructure this entire thing to make it so that functor runs and returns only if you find a comma

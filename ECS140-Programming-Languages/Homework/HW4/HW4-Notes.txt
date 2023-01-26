@@ -1,0 +1,230 @@
+Okay I think I get it now, it requires a mapping that checks the numbers of arguments against the other ones, then when it gets passed in, it will map the two values together. For example:
+f(X, g(1)) and f(g(2), g(Y))
+X → g(2), Y → 1
+
+f is the function itself, that maps X with G(2) because its in the X position, meanwhile y is mapped to g(1) which is a function itself, so it maps to a 1.
+So if it contains no functors then error?
+
+Next two parts are: if they don't have the same number of terms and if they try to map the same variable to two different functions? So check if the length of the two of them are the same or not. Not only do we check if they're the same length, its if they are the same function. Now we need to check if they contain the same thing which requires us to use the disjoint set combined with the parser.go. So let's think about this part.
+
+Parser.go contains the map of strings that will block if it already contains one. Then there's also the disjoint set that holds the two together. WE need to pair them together so that if a pairing is already found, then it should return that single one? So when it comes to f(x) and g(x).
+
+F(x) and g(x) cannot be unified because there is nothing to replace. So functor being on its own is not a problem, 
+
+Okay so if two functors are the same, then we need to mark each of their positions to each other? Also the other part of disjoint set is that it takes in an integer instead of a string
+Does that mean we need to change the value of each to match 
+
+So for unifier, it means that they can be put into simplified terms. Meaning they can be combined together so that they are not just repeats? f(f(x),y) detects that they are the same type going from inner to outer, how do we simulate this? We also know that 
+
+When it comes to f(X, g(1)) and f(g(2), g(Y)), we know that x is compared to g(2) and checked to see if there exists another one? Then it sees that in the other functor that x maps to g(2), when we go into that functor, we see that there is a two but nothing that maps to 2. Now we are done with this term, we move across that node and see g(1) maps to g(y), we see that each one of them are equal and both contain the same functor, so they are essentially the same value.
+
+Okay so I think our game plan is to create a for loop that iterates through the arguments and compares them 1-1. Then it checks if the values can be unified or not. Basically it checks to see if 
+the x value can be put into a set with the g(2), if it can then it will return a disjoint set of
+
+Okay so how do we map that the two exists, do we just go left to right one by one and determine if they're the same? Additionally how does disjoint set help us here? If we use disjoint set, it expects an integer and return of integer
+
+I think in disjointset, we need to add an additional parameter "string" that will hold the values. When it comes to the return type, it always returns the NODE number that its connected to, not necessarily the string, but how does this help us? Maybe we have to edit it so that the string itself is in the disjoint set? 
+
+I think the idea I have is having the disjoint set combine two things, then it passes back the left. Then we have two other maps, one that maps the string to an integer, this integer connects to the disjoint set's number, and the second map will be integer to string. 
+
+If we do it this way, our only problem is when the values get updated, how do we update when the roots change, so if we use the same value, how does that update? Well if all of them get updated, we'd have to do a check again to replace. Which isn't the worst.
+
+Yeah I don't know if that's how it works. Disjoint set brings back the value that it is most likely connected to. I think the other problem we have is that how do we split the factors up into each other? Is each term in a union of its own and how does that help us to figure out how to union each part?
+
+1. If Term1 or Term2 is a variable or constant, then:
+ a)if Term1 or Term2 are identical, then return nil
+ b) else if Term1 is a variable,
+	a) then if Term1 occurs in Term2, then return failure
+	b) else return { (Term2/Term1)}.
+ c) else if Term2 is a variable,
+	a) If term2 occurs in Term1 then return FAILURE,
+	b) Else return {(Term1/Term2)}
+ d) return failure
+2. If the initial Predicate symbol in Term1 and Term2 are not the same, return failure
+3. If term1 and term 2 have different number of arguments, return failure
+4. Set Subset to NIL
+5. For i = 1, i < len(Term.Args); i++
+ a) S = Unify(term1[i],term2[i])
+ b) If S = failure, return failure
+ c) If S != NIL,
+	a) Apply S to the remainder of both L1 and L2
+	b) SUBST = Append(S, SUBST).
+Return SUBST
+
+Okay so when it comes to a SUBST is that the substitution value? Is the substitution value the disjoint set itself?
+
+Each term will need to be determined if it contains a functor or not. Let's define it:
+1. A functor and arguments, means that it is not a variable, we will also have to print each literal
+2. A variable will contain no arguments?
+
+We need to do a recursive call across the terms and it will pass the the next term recursively.
+
+it is a variable if it does not contain a functor so we need to check if either Term1 or Term2 contains a functor. It seems as though variables contain a higher order than constants, functions seem to be lower order than variables. So every variable seems to map out to either a constant or function, so it seems to be a comparison, if the current term we are on, is a variable, then it is the one that gets mapped. So we have to map both sides.
+
+If either w1 or w2 are variables then we check one or the other against the other's values, if they are occurring in the arguments, then we return false. So basically we need to see if they are functors or not, if one is a functor then the arguments get checked.
+
+I feel like the retSet needs to be different right? Maybe what we should do is change this the disjoint? Disjoint feels like it needs to be used for the substitution set.
+
+So what cases are there for this? Its going to be, if there are no args, then both literals? But there's also the fact that there are functors
+
+I think what we need to do is go over the videos again because he probably discusses parts of it.
+
+I think the last part is going through the code step by step to figure out how it is running it.
+
+T1 = prime(11) T2 = prime(y)
+S0 => {prime(11), prime(y)}
+Subst theta = {11/y}
+S1 => {prime(11), prime(11)}
+
+We need to do a mapping of terms to integers and integers to terms where it updates each time. That way, when it calls on that value it returns the value back to us with the string attached. Once that string is attached. So its only mild.
+
+Now we have to distinguish between the different types. If it contains arguments then it must be a functor. If there are no arguments, then it is a variable or constant. 
+
+Either a literal or a functor and arguments so we need to go in
+
+I think we need to split these into two cases. We need to check for term1 being a literal and term2 being a literal
+
+So this is with the mapping, but the other part I think we need to do is a disjoint set. We will see if I can figure out this algorithm without the disjoint for the time being. It might be in step 5 where it becomes more of a hassle.
+
+Well if it does this, do we have it go into unify again, and why don't we just do that every time it sees a functor instead?
+
+What if we write an occurs helper function that checks to see if it occurs in the current sequence, if we run across a compound function, then we call back on Unify? Calling back on Unify will check then go through the same rules and
+
+Occurs will check if T1 is in T2, so it will hold its own for loop. 
+
+Take note that NIL and failure are two different things. Meaning that if it occurs in the 5th stage, we need to be checking for nil instead of ErrUnifier, 
+
+Okay we might have to go back and just do an occurs where they are both variables, with this algorithm, we are just assuming it is some argument, inside of occurs, if len of args is 0, return false, then it returns an error?
+
+So we destroy the entire literal check for the second part. Just make it true or false, if it is false then we map them together	
+
+Funny that we just ran into that idea of everything being a variable rather than a compound.
+
+Oh... do we have to go in and convert each term into a "variable" meaning as a literal?
+
+Now we have a problem, after that map is given to us, how do we change the values?
+
+How do we get the maps to map to each other?
+
+I think the part that we need to return is the submap. So that means we need a separate unify function
+
+When it comes to the disjoint set, we have a representative, so is this one an integer to a string? That way the representative gives us a value and then we do a mapping with another integer? How are we deciding to distribute these integers? Is it just going to be a global counter ticket system?
+
+So when we go line by line we check if it exists.
+
+Okay so we return a value here which might be a mapping?
+
+Now with this in place we have the structure set up but we just need to check when the symbols might clash. So when we are in this for loop, we are going across each value and checking if they are equal to each other or not, if they're not, then we need to check if the symbols exist in the map? How do we determine if in the map they are already appended? If its a compound, then it will not check, we will check if a variable is in the list yet. So at both pivot points, the only check is done during variable is my guess. Let's work on that then.
+
+We know that we want a check for the representative, but we haven't decided on when to use it. Basically if it is stored in a map, that already exists, then we will not add it again. Okay so if we get it mapped globally, what is the return value? When something is mapped without a return type, then what do we do for the return? Well let's do a return of nil. So we are saying if map already has the value, then we don't try to change it. We have it map on the submap, if it already exist, then what is supposed to happen? If it already has that value, then we are supposed to edit the original string? 
+
+We need to start to differentiate from the two of them. We need to start finding out if they are type Atom or not. Well let's see. So our problem right now is that we need to determine if its a termCompound or not. Ah so there's a termcompound and termvariable
+
+Okay we need to go back and fix some of these to be honest. We need to change the term types and identifiers, I think that if its a compound is a separate case.
+
+If it is already in the map, then what do we do? We determine that the value is already done. 
+
+Okay I think I get it. When we return that result up, then we can use a for loop to get the values and use it to append to the rest of the values
+
+in order for any business to be successful, it must cater to an audience that is willing to purchase, and for a restaurant, an audience that is willing to consume.
+
+AYUSH Notes
+
+Structures:
+dj disjointset
+sigma map[*term.Term]*term.Term
+visited, acyclic map[*term.Term]bool
+vars map[*term.Term][]*term.Term // This is a mapping of one term to multiple terms
+encode map[*term.Term]int
+decode map[int]*term.Term
+
+Unify():
+Create a mapping between the encoding and decoding. Set s encode 0, t encode 1, 0 encode s, 1 encode t, 
+call on UnifClosure()-> //
+
+// Anytime UnifClosure is called, this matching occurs, but what happens when the term is the same?
+UnifClosure-> Call on u.Setup()
+u.Setup->
+if termS is a compound then we map sigma[s] to s.Functor 
+else sigma[s] is the term s itself
+
+if termT is a compound then we map sigma[t] to t.Functor
+else sigma[t] is the term t itself
+
+Set all flags to false for visited and acyclic across terms s and t
+
+if the type of s is of compound, set the vars[s] to an array of terms with size 0
+else map s using var[s] and set it equal to an array of size 1, then the values that map s as a term, and at its 0th position will map to 0.	
+
+if the type of t is of compound, set the vars[t] to an array of term with size 0
+else map t using var[t] and set it equal to an array of size 1, then the values that map t as a term, and at its 0th position will map to 1
+
+Call for PopulateED(S) ->	
+set t equal to encode[s](returns int/index), check occurs as an error, 
+
+if no occurs(error)
+	then create a variable with maxint, then iterate through the range of the encode array and if v is greater than or equal to vmax, set v equal to vmax, so this for loop is basically getting the size of encode and then matching the encoding term to vmax + 1, as an index. Return nothing
+
+else(term is already mapped) 
+	if the term s is not the same as the decoder at int t, then return error.
+	else(they are the same), return nil (meaning continue)
+Return to Setup call from UnifClosure
+
+Call for PopulateED(T) -> Repeat the above with T
+Return to UnifClosure
+
+Create a s representative(srep) and call FindSet, pass in the encoding of s, meaning we are passing in integer
+Call for FindSet-> Findset is in disjointset, meaning it finds the representative and returns the integer value that maps to it, which means it needs to go through the decode after.
+FindSet -> Returns the parent representative on each call
+Return to UnifClosure
+
+Repeat this call for trep
+if srep == trep, do nothing,
+else check if the 
+
+We kind of understand at this point
+
+So when it comes to the mapping, we need to start from the beginning so somewhere in setup or the beginning, also we need to find out if that atom is making a difference in terms of how it maps. It seems like it just maps either or without discriminating, so we need to go in and do checks on our own. 
+
+First step: Run through and see how it maps the X and 1 in our code 
+
+So far in unify, it immediately maps the s and t values to 1
+So encode["X"] = 0, encode["T"] = 1, decode[0] = "X", decode[1] = t, I think encode and decode won't matter but when we do a representative exchange, we need to do checks
+Setup: s.Typ is not a functor, map sigma[s] to s, we also link sigmat directly to t
+
+We need to go in and determine at what point, which one of them needs to be turned into the representative. Which means that we need to determine when to swap s and t.
+
+Okay we need to do checks in terms of types and what overrides the other.
+I think that Sigma vars is supposed to be the return right?
+
+
+
+if sRep.Typ != tRep.Typ && (sRep.Typ != term.TermVariable && tRep.Typ != term.TermVariable) {
+			return ErrUnifier
+		}
+		if sRep.Typ == term.TermAtom && tRep.Typ == term.TermAtom {
+			if sRep != tRep {
+				return ErrUnifier
+			}
+		}
+		if sRep.Typ == term.TermNumber && tRep.Typ == term.TermNumber {
+			if sRep != tRep {
+				return ErrUnifier
+			}
+		}
+		if sRep.Typ == term.TermCompound && tRep.Typ == term.TermCompound {
+			if sRep.Functor != tRep.Functor {
+				return ErrUnifier
+			}
+			if len(sRep.Args) != len(tRep.Args) {
+				return ErrUnifier
+			}
+			for i := 0; i < len(sRep.Args); i++ {
+				err := u.UnifClosure(sRep.Args[i], tRep.Args[i])
+				if err != nil {
+					return ErrUnifier
+				}
+			}
+		} else {
+			u.Union(sRep, tRep)
+		}

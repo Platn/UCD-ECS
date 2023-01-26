@@ -1,0 +1,11 @@
+char *name;
+  int runtime;
+  float probability;
+  while(1) {
+    name = malloc(sizeof(char) * 10);
+    Job* job = Job_New(name,runtime,probability,LOW);
+    if(fscanf(fp,"%s %d %f",name, &runtime, &probability) == EOF) {
+      break;
+    }
+    printf("%s, %d, %.3f\n",name, runtime, probability);
+  }
